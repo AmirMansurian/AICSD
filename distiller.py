@@ -66,9 +66,12 @@ class Distiller(nn.Module):
         feat_num = len(t_feats)
 
         loss_distill = 0
-        for i in range(feat_num):
-            s_feats[i] = self.Connectors[i](s_feats[i])
-            loss_distill += distillation_loss(s_feats[i], t_feats[i].detach(), getattr(self, 'margin%d' % (i+1))) \
-                            / self.loss_divider[i]
+        #for i in range(feat_num):
+        #    s_feats[i] = self.Connectors[i](s_feats[i])
+         #   loss_distill += distillation_loss(s_feats[i], t_feats[i].detach(), getattr(self, 'margin%d' % (i+1))) \
+           #                 / self.loss_divider[i]
+        
+        T = 10
+        loss_distill = nn.KLDivLoss()(F.log_softmax(s_out/T, dim=1), F.softmax(s_out/T, dim=1))
 
-        return s_out, loss_distill
+        return s_out, loss_distill*1e9
