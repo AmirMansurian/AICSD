@@ -6,6 +6,10 @@ from modeling.aspp import build_aspp
 from modeling.decoder import build_decoder
 from modeling.backbone import build_backbone
 
+import numpy as  np
+import cv2
+import torch
+
 class DeepLab(nn.Module):
     def __init__(self, backbone='resnet', output_stride=16, num_classes=21,
                  sync_bn=True, freeze_bn=False):
@@ -77,10 +81,18 @@ class DeepLab(nn.Module):
     def extract_feature(self, input):
         feats, x, low_level_feat = self.backbone.extract_feature(input)
         feat, x = self.aspp.extract_feature(x)
+        dist_feats = feat
         feats += feat
         feat, x = self.decoder.extract_feature(x, low_level_feat)
         feats += feat
         x = F.interpolate(x, size=input.size()[2:], mode='bilinear', align_corners=True)
+        
 
-        return feats, x
+        #img = torch.sum((feats[5])[0], axis=0).cpu().detach().numpy()
+        #b = np.copy(img)
+        #cv2.normalize(img,b,0,255,cv2.NORM_MINMAX)
+        #b = cv2.applyColorMap(np.uint8(b), cv2.COLORMAP_JET)
+        #cv2.imwrite('feature.jpeg', b)  
+
+        return feats, x, dist_feats
 
