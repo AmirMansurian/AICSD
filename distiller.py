@@ -12,6 +12,11 @@ def distillation_loss(source, target, margin):
     loss = loss * ((source > target) | (target > 0)).float()
     return loss.sum()
 
+def dist_loss(source, target):
+    loss = torch.nn.functional.mse_loss(source, target, reduction="none")
+    loss = loss * ((source > target) | (target > 0)).float()
+    return loss.sum()
+
 def build_feature_connector(t_channel, s_channel):
     C = [nn.Conv2d(s_channel, t_channel, kernel_size=1, stride=1, padding=0, bias=False),
          nn.BatchNorm2d(t_channel)]
@@ -61,17 +66,38 @@ class Distiller(nn.Module):
 
     def forward(self, x):
 
-        t_feats, t_out = self.t_net.extract_feature(x)
-        s_feats, s_out = self.s_net.extract_feature(x)
+        #print('Teacherrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
+        t_feats, t_out, dist_t = self.t_net.extract_feature(x)
+        #print('Studentttttttttttttttttttttttttttttttttttttttttt')
+        s_feats, s_out, dist_s = self.s_net.extract_feature(x)
         feat_num = len(t_feats)
 
-        loss_distill = 0
-        #for i in range(feat_num):
-        #    s_feats[i] = self.Connectors[i](s_feats[i])
-         #   loss_distill += distillation_loss(s_feats[i], t_feats[i].detach(), getattr(self, 'margin%d' % (i+1))) \
-           #                 / self.loss_divider[i]
-        
-        T = 10
-        loss_distill = nn.KLDivLoss()(F.log_softmax(s_out/T, dim=1), F.softmax(s_out/T, dim=1))
+        TF = torch.mean((dist_t[0]), axis=1).cpu().detach()
+        SF = torch.mean((dist_s[0]), axis=1).cpu()
 
-        return s_out, loss_distill*1e9
+        #print()
+        #print(TF.shape)
+        #print(SF.shape)
+
+        loss_distill = 0
+        loss_distill = dist_loss(SF, TF.detach())
+        #print(loss_distill)
+        #for i in range(feat_num):
+         #   s_feats[i] = self.Connectors[i](s_feats[i])
+            #print(s_feats[i].shape)
+         #   loss_distill += distillation_loss(s_feats[i], t_feats[i].detach(), getattr(self, 'margin%d' % (i+1))) \
+          #                  / self.loss_divider[i]
+
+        #print(loss_distill)
+
+
+        #T = 1
+        #loss = nn.KLDivLoss()(F.log_softmax(s_out/T, dim=1), F.softmax(s_out/T, dim=1))
+
+        #print('###########################################################################')
+        #print(loss*1e9)
+        #print('###########################################################################')
+        #print(loss_distill)
+        #print('###########################################################################')
+
+        return s_out, 0, loss_distill
