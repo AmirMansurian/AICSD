@@ -33,7 +33,7 @@ class Trainer(object):
                              output_stride=args.out_stride,
                              sync_bn=args.sync_bn,
                              freeze_bn=args.freeze_bn)
-        checkpoint = torch.load('/kaggle/working/deeplab-resnet.pth.tar')
+        checkpoint = torch.load('/kaggle/working/checkpoint.pth.tar')
         self.t_net.load_state_dict(checkpoint['state_dict'])
 
         self.s_net = DeepLab(num_classes=self.nclass,
@@ -118,20 +118,16 @@ class Trainer(object):
                 image, target = image.cuda(), target.cuda()
             self.scheduler(optimizer, i, epoch, self.best_pred)
             optimizer.zero_grad()
-            
-            
-            
-            ###############################################################################
-            output, loss_distill = self.d_net(image)
+            output, loss_distill, loss_kd = self.d_net(image)
+            #print(loss_kd/ batch_size)
 
             loss_seg = self.criterion(output, target)
-           # loss = loss_seg + loss_distill.sum() / batch_size * 1e-5
-        
-            loss = loss_seg + loss_distill
-#########################################################################################################
-
-
-
+            #print('###########################')
+           # print(loss_seg)
+           # print('################################')
+            #loss = loss_seg + loss_distill.sum() / batch_size * 1e-5
+           # loss = loss_seg + loss_kd
+           loss = loss_seg + loss_kd
 
             loss.backward()
             optimizer.step()
