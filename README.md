@@ -1,4 +1,7 @@
 ## Knowledge Distillation in Semantic Segmentation - Pascal VOC
+### Deeplab architecture
+
+![Alt Text](https://raw.githubusercontent.com/AmirMansurian/KD/main/Deeplab%20Architecture.png)
 
 ### Teacher and Student
 
