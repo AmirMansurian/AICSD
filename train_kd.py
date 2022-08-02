@@ -100,9 +100,9 @@ class Trainer(object):
             checkpoint = torch.load(args.resume)
             args.start_epoch = checkpoint['epoch']
             if args.cuda:
-                self.model.module.load_state_dict(checkpoint['state_dict'])
+                self.d_net.s_net.module.load_state_dict(checkpoint['state_dict'])
             else:
-                self.model.load_state_dict(checkpoint['state_dict'])
+                 self.d_net.s_net.load_state_dict(checkpoint['state_dict'])
             if not args.ft:
                 self.optimizer.load_state_dict(checkpoint['optimizer'])
             self.best_pred = checkpoint['best_pred']
