@@ -41,7 +41,9 @@ class Trainer(object):
                              output_stride=args.out_stride,
                              sync_bn=args.sync_bn,
                              freeze_bn=args.freeze_bn)
-       # self.d_net = distiller.Distiller(self.t_net, self.s_net)
+        checkpoint = torch.load('/kaggle/working/model.pth.tar')
+        self.t_net.load_state_dict(checkpoint['state_dict'])
+        self.d_net = distiller.Distiller(self.t_net, self.s_net)
 
         print('Teacher Net: ')
         print(self.t_net)
@@ -87,33 +89,12 @@ class Trainer(object):
                                             args.epochs, len(self.train_loader))
 
         # Using cuda
-        #if args.cuda:
-           # self.s_net = torch.nn.DataParallel(self.s_net).cuda()
-           # self.d_net = torch.nn.DataParallel(self.d_net).cuda()
-
-        # Resuming checkpoint
-        self.best_pred = 0.0
-        
-        if args.resume is not None:
-            if not os.path.isfile(args.resume):
-                raise RuntimeError("=> no checkpoint found at '{}'" .format(args.resume))
-            checkpoint = torch.load(args.resume)
-            args.start_epoch = checkpoint['epoch']
-            if args.cuda:
-                self.s_net.module.load_state_dict(checkpoint['state_dict'])
-            else:
-                 self.s_net.load_state_dict(checkpoint['state_dict'])
-            if not args.ft:
-                self.optimizer.load_state_dict(checkpoint['optimizer'])
-            self.best_pred = checkpoint['best_pred']
-            print("=> loaded checkpoint '{}' (epoch {})"
-                  .format(args.resume, checkpoint['epoch']))
-            
-        self.d_net = distiller.Distiller(self.t_net, self.s_net)
         if args.cuda:
             self.s_net = torch.nn.DataParallel(self.s_net).cuda()
             self.d_net = torch.nn.DataParallel(self.d_net).cuda()
 
+        # Resuming checkpoint
+        self.best_pred = 0.0       
 
         # Clear start epoch if fine-tuning
         if args.ft:
