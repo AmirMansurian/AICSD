@@ -72,13 +72,24 @@ class Distiller(nn.Module):
         #print('Studentttttttttttttttttttttttttttttttttttttttttt')
         s_feats, s_out, dist_s = self.s_net.extract_feature(x)
         feat_num = len(t_feats)
-
-        TF = F.normalize(t_feats[4].pow(2).mean(1)) 
-        SF = F.normalize(s_feats[4].pow(2).mean(1)) 
-        loss_distill = 0
-        loss_distill = (TF - SF).pow(2).mean()
         
-        loss_distill2 =  torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), F.softmax(t_out / self.temperature, dim=1))
+        gt = F.interpolate(t_feats[4], size=x.size()[2:], mode='bilinear', align_corners=True).pow(2).mean(1)
+        gs = F.interpolate(s_feats[4], size=x.size()[2:], mode='bilinear', align_corners=True).pow(2).mean(1)
+
+        loss_distill = 0
+        for i in range(21) :
+
+          grad_t = F.normalize(t_out[:, i] - gt)
+          grad_s = F.normalize(s_out[:, i] - gs)
+          #print(grad_t.shape)
+          loss_distill += (grad_t - grad_s).pow(2).mean()
+
+        #TF = F.normalize(t_feats[4].pow(2).mean(1)) 
+        #SF = F.normalize(s_feats[4].pow(2).mean(1)) 
+        #loss_distill = 0
+        #loss_distill = (TF - SF).pow(2).mean()
+        
+        #loss_distill2 =  torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), F.softmax(t_out / self.temperature, dim=1))
 
 
         return s_out, loss_distill2, loss_distill
