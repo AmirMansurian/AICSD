@@ -17,7 +17,7 @@
 |:----------:|:---------:|:------------:|:------------:|
 | ResNet 101 | ResNet 18 |   CE + Logits    |    68/67 %    |  
 | ResNet 101 | ResNet 18 |    CE + feature_maps    |     69/15 %   |
-| ResNet 101 | ResNet 18 |    CE + feature_maps + Logits    |    68/84 %   |
+| ResNet 101 | ResNet 18 |    CE + feature_maps + Logits    |    69/38 %   |
 
 
 ### Teacher model
