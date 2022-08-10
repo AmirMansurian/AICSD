@@ -82,7 +82,7 @@ class Distiller(nn.Module):
           grad_t = F.normalize(t_out[:, i] - gt)
           grad_s = F.normalize(s_out[:, i] - gs)
           #print(grad_t.shape)
-          loss_distill += (grad_t - grad_s).pow(2).mean()
+          grad_distill += (grad_t - grad_s).pow(2).mean()
 
         TF = F.normalize(t_feats[4].pow(2).mean(1)) 
         SF = F.normalize(s_feats[4].pow(2).mean(1)) 
