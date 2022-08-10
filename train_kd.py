@@ -41,8 +41,8 @@ class Trainer(object):
                              output_stride=args.out_stride,
                              sync_bn=args.sync_bn,
                              freeze_bn=args.freeze_bn)
-        checkpoint = torch.load('/kaggle/working/model.pth.tar')
-        self.s_net.load_state_dict(checkpoint['state_dict'])
+        #checkpoint = torch.load('/kaggle/working/model.pth.tar')
+        #self.s_net.load_state_dict(checkpoint['state_dict'])
         self.d_net = distiller.Distiller(self.t_net, self.s_net)
 
        # print('Teacher Net: ')
@@ -128,8 +128,8 @@ class Trainer(object):
            # print(loss_seg)
            # print('################################')
             #loss = loss_seg + loss_distill.sum() / batch_size * 1e-5
-            loss = loss_seg + loss_kd
-            #loss = loss_seg + loss_kd + loss_distill
+            #loss = loss_seg + loss_kd
+            loss = loss_seg + loss_kd + loss_distill
 
             loss.backward()
             optimizer.step()
