@@ -2,6 +2,7 @@ import argparse
 import os
 import numpy as np
 from tqdm import tqdm
+import wandb
 
 from mypath import Path
 from dataloaders import make_data_loader
@@ -120,7 +121,7 @@ class Trainer(object):
                 image, target = image.cuda(), target.cuda()
             self.scheduler(optimizer, i, epoch, self.best_pred)
             optimizer.zero_grad()
-            output, loss_distill, loss_kd = self.d_net(image)
+            output, loss_distill = self.d_net(image)
             #print(loss_kd/ batch_size)
 
             loss_seg = self.criterion(output, target)
@@ -129,7 +130,7 @@ class Trainer(object):
            # print('################################')
             #loss = loss_seg + loss_distill.sum() / batch_size * 1e-5
             #loss = loss_seg + loss_kd
-            loss = loss_seg + loss_kd + loss_distill
+            loss = loss_seg + loss_distill
 
             loss.backward()
             optimizer.step()
@@ -138,6 +139,7 @@ class Trainer(object):
 
         print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
         print('Loss: %.3f' % train_loss)
+        wandb.log({"train loss": train_loss})
 
         if self.args.no_val:
             # save checkpoint every epoch
@@ -178,6 +180,7 @@ class Trainer(object):
         print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
         print("Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(Acc, Acc_class, mIoU, FWIoU))
         print('Loss: %.3f' % test_loss)
+        wandb.log({"test loss": test_loss, "mIOU": mIoU})
 
         new_pred = mIoU
         if new_pred > self.best_pred:
@@ -268,6 +271,19 @@ def main():
             args.gpu_ids = [int(s) for s in args.gpu_ids.split(',')]
         except ValueError:
             raise ValueError('Argument --gpu_ids must be a comma-separated list of integers only')
+            
+            
+     
+    wandb.init(project="Knowledge Deistillation", entity="ipl_runs", name="feature maps",
+      config={
+      "learning_rate": 0.007,
+      "architecture": "DeepLab",
+      "dataset": "PascalVoc 2012",
+      "epochs": 120,
+      })
+    
+    
+    
 
     # default settings for epochs, batch_size and lr
     if args.epochs is None:
@@ -304,6 +320,8 @@ def main():
         trainer.training(epoch)
         if not trainer.args.no_val and epoch % args.eval_interval == (args.eval_interval - 1):
             trainer.validation(epoch)
+            
+    wandb.finish()
 
 
 if __name__ == "__main__":
