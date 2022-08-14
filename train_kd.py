@@ -130,7 +130,7 @@ class Trainer(object):
            # print('################################')
             #loss = loss_seg + loss_distill.sum() / batch_size * 1e-5
             #loss = loss_seg + loss_kd
-            loss = loss_seg + loss_distill
+            loss = loss_seg + 100 * loss_distill
 
             loss.backward()
             optimizer.step()
