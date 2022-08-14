@@ -74,8 +74,8 @@ class Distiller(nn.Module):
         feat_num = len(t_feats)
         
         loss_distill = 0
-        TF = F.normalize(t_feats[4].pow(2).mean(1)) 
-        SF = F.normalize(s_feats[4].pow(2).mean(1)) 
+        TF = F.normalize(t_feats[5].pow(2).mean(1)) 
+        SF = F.normalize(s_feats[5].pow(2).mean(1)) 
         temp = (TF - SF).pow(2).mean()
         loss_distill += temp
         #print('########################################')
