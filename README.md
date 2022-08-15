@@ -15,10 +15,12 @@
 
 |   Teacher  |  Student  | Loss | mIOU |
 |:----------:|:---------:|:------------:|:------------:|
+| ResNet 101 | ResNet 18 |   CE + backbone feature_maps    |    67/75 %    | 
 | ResNet 101 | ResNet 18 |   CE + grad_based    |    67/79 %    |  
 | ResNet 101 | ResNet 18 |   CE + Logits    |    68/67 %    |  
-| ResNet 101 | ResNet 18 |    CE + feature_maps    |     69/15 %   |
-| ResNet 101 | ResNet 18 |    CE + feature_maps + Logits    |    69/38 %   |
+| ResNet 101 | ResNet 18 |    CE + ASPP feature_maps    |     69/15 %   |
+| ResNet 101 | ResNet 18 |    CE + ASPP + Logits    |    69/38 %   |
+| ResNet 101 | ResNet 18 |    CE + last layer feature_maps    |    69/58 %   |
 
 
 ### Teacher model
