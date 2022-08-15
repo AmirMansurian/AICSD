@@ -73,18 +73,18 @@ class Distiller(nn.Module):
         s_feats, s_out, dist_s = self.s_net.extract_feature(x)
         feat_num = len(t_feats)
         
-        loss_distill = 0
-        for i in range(feat_num):
-            s_feats[i] = self.Connectors[i](s_feats[i])
-            loss_distill += distillation_loss(s_feats[i], t_feats[i].detach(), getattr(self, 'margin%d' % (i+1))) \
-                            / self.loss_divider[i]
+        #loss_distill = 0
+       # for i in range(feat_num):
+          #  s_feats[i] = self.Connectors[i](s_feats[i])
+           # loss_distill += distillation_loss(s_feats[i], t_feats[i].detach(), getattr(self, 'margin%d' % (i+1))) \
+                      #      / self.loss_divider[i]
 
         
-       # loss_distill = 0
-        #TF = F.normalize(t_feats[5].pow(2).mean(1)) 
-       # SF = F.normalize(s_feats[5].pow(2).mean(1)) 
-        #temp = (TF - SF).pow(2).mean()
-        #loss_distill += temp
+        loss_distill = 0
+        TF = F.normalize(t_feats[5].pow(2).mean(1)) 
+        SF = F.normalize(s_feats[5].pow(2).mean(1)) 
+        temp = (TF - SF).pow(2).mean()
+        loss_distill += temp
         #print('########################################')
         #for i in range(len(t_feats)):
          # TF = F.normalize(t_feats[i].pow(2).mean(1)) 
@@ -108,7 +108,7 @@ class Distiller(nn.Module):
         #loss_distill = 0
         #loss_distill = (TF - SF).pow(2).mean()
         
-        #loss_distill2 =  torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), F.softmax(t_out / self.temperature, dim=1))
+        loss_distill2 =  torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), F.softmax(t_out / self.temperature, dim=1))
 
 
-        return s_out, loss_distill
+        return s_out, loss_distill2, loss_distill
