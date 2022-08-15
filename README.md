@@ -1,7 +1,8 @@
 ## Knowledge Distillation in Semantic Segmentation - Pascal VOC
 ### Deeplab architecture
 
-![Alt Text](https://raw.githubusercontent.com/AmirMansurian/KD/main/Deeplab%20Architecture.png)
+![Alt Text](https://raw.githubusercontent.com/AmirMansurian/KD/main/Images/Deeplab%20Architecture.png)
+
 
 ### Teacher and Student
 
@@ -23,6 +24,12 @@
 | ResNet 101 | ResNet 18 |    CE + ASPP + Logits    |    69/38 %   |
 | ResNet 101 | ResNet 18 |    CE + last layer feature_maps    |    69/82 %   |
 
+
+### Visuialization
+
+![Alt Text](https://raw.githubusercontent.com/AmirMansurian/KD/main/Images/input.jpeg)
+![Alt Text](https://raw.githubusercontent.com/AmirMansurian/KD/main/Images/feature.jpeg)
+![Alt Text](https://raw.githubusercontent.com/AmirMansurian/KD/main/Images/grad.jpeg)
 
 ### Teacher model
 Download following pre-trained teacher network and put it into ```./Segmentation/pretrained``` directory
