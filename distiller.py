@@ -91,8 +91,8 @@ class Distiller(nn.Module):
         feat_num = len(t_feats)
         
         loss_distill = 0
-        feat_T = t_feats[4]
-        feat_S = s_feats[4]
+        feat_T = t_feats[5]
+        feat_S = s_feats[5]
         total_w, total_h = feat_T.shape[2], feat_T.shape[3]
         patch_w, patch_h = int(total_w*self.scale), int(total_h*self.scale)
         maxpool = nn.MaxPool2d(kernel_size=(patch_w, patch_h), stride=(patch_w, patch_h), padding=0, ceil_mode=True) # change
