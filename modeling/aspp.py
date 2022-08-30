@@ -101,7 +101,7 @@ class ASPP(nn.Module):
         x = self.relu(x)
         feat2 = x
 
-        return [feat1, feat2], x
+        return [feat1], x
 
     def _init_weight(self):
         for m in self.modules():
