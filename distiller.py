@@ -91,12 +91,18 @@ class Distiller(nn.Module):
         feat_num = len(t_feats)
         
         loss_distill = 0
-        feat_T = t_feats[5]
-        feat_S = s_feats[5]
+        feat_T = t_feats[4]
+        feat_S = s_feats[4]
         total_w, total_h = feat_T.shape[2], feat_T.shape[3]
         patch_w, patch_h = int(total_w*self.scale), int(total_h*self.scale)
         maxpool = nn.MaxPool2d(kernel_size=(patch_w, patch_h), stride=(patch_w, patch_h), padding=0, ceil_mode=True) # change
         loss_distill = self.criterion(maxpool(feat_S), maxpool(feat_T))
+        
+        loss = 0
+        TF = F.normalize(t_feats[5].pow(2).mean(1)) 
+        SF = F.normalize(s_feats[5].pow(2).mean(1)) 
+        loss = (TF - SF).pow(2).mean()
+   
         
         #TF = F.normalize(t_feats[5].pow(2).mean(1)) 
         #SF = F.normalize(s_feats[5].pow(2).mean(1)) 
@@ -128,4 +134,4 @@ class Distiller(nn.Module):
         #loss_distill2 =  torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), F.softmax(t_out / self.temperature, dim=1))
 
 
-        return s_out, loss_distill
+        return s_out, loss, loss_distill
