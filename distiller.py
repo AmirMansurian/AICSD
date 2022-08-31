@@ -84,54 +84,31 @@ class Distiller(nn.Module):
 
     def forward(self, x):
 
-        #print('Teacherrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
         t_feats, t_out, dist_t = self.t_net.extract_feature(x)
-        #print('Studentttttttttttttttttttttttttttttttttttttttttt')
         s_feats, s_out, dist_s = self.s_net.extract_feature(x)
         feat_num = len(t_feats)
         
-        loss_distill = 0
-        feat_T = t_feats[4]
-        feat_S = s_feats[4]
-        total_w, total_h = feat_T.shape[2], feat_T.shape[3]
-        patch_w, patch_h = int(total_w*self.scale), int(total_h*self.scale)
-        maxpool = nn.MaxPool2d(kernel_size=(patch_w, patch_h), stride=(patch_w, patch_h), padding=0, ceil_mode=True) # change
-        loss_distill = self.criterion(maxpool(feat_S), maxpool(feat_T))
         
-        loss = 0
-        TF = F.normalize(t_feats[5].pow(2).mean(1)) 
-        SF = F.normalize(s_feats[5].pow(2).mean(1)) 
-        loss = (TF - SF).pow(2).mean()
+        pa_loss = 0 
+        if self.args.pa_lambda is not None: # pairwise loss
+          feat_T = t_feats[4]
+          feat_S = s_feats[4]
+          total_w, total_h = feat_T.shape[2], feat_T.shape[3]
+          patch_w, patch_h = int(total_w*self.scale), int(total_h*self.scale)
+          maxpool = nn.MaxPool2d(kernel_size=(patch_w, patch_h), stride=(patch_w, patch_h), padding=0, ceil_mode=True) # change
+          pa_loss = self.args.pa_lambda * self.criterion(maxpool(feat_S), maxpool(feat_T))
    
+
+        pi_loss = 0
+        if self.args.pi_lambda is not None: # pixelwise loss
+          TF = F.normalize(t_feats[5].pow(2).mean(1)) 
+          SF = F.normalize(s_feats[5].pow(2).mean(1)) 
+          pi_loss = self.args.pi_lambda * (TF - SF).pow(2).mean()
+
+
+        lo_loss = 0
+        if self.args.lo_loss is not None: #logits loss
+          lo_loss =  self.args.lo_lambda * torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), F.softmax(t_out / self.temperature, dim=1))
         
-        #TF = F.normalize(t_feats[5].pow(2).mean(1)) 
-        #SF = F.normalize(s_feats[5].pow(2).mean(1)) 
-        #temp = (TF - SF).pow(2).mean()
-        #loss_distill += temp
-        #print('########################################')
-        #for i in range(len(t_feats)):
-         # TF = F.normalize(t_feats[i].pow(2).mean(1)) 
-          #SF = F.normalize(s_feats[i].pow(2).mean(1)) 
-          #temp = (TF - SF).pow(2).mean()
-          #loss_distill += temp
-        
-       # gt = F.interpolate(t_feats[4], size=x.size()[2:], mode='bilinear', align_corners=True).pow(2).mean(1)
-       # gs = F.interpolate(s_feats[4], size=x.size()[2:], mode='bilinear', align_corners=True).pow(2).mean(1)
 
-       # grad_distill = 0
-       # for i in range(21) :
-
-         # grad_t = F.normalize(t_out[:, i] - gt)
-         # grad_s = F.normalize(s_out[:, i] - gs)
-          #print(grad_t.shape)
-          #grad_distill += (grad_t - grad_s).pow(2).mean()
-
-        #TF = F.normalize(t_feats[4].pow(2).mean(1)) 
-        #SF = F.normalize(s_feats[4].pow(2).mean(1)) 
-        #loss_distill = 0
-        #loss_distill = (TF - SF).pow(2).mean()
-        
-        #loss_distill2 =  torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), F.softmax(t_out / self.temperature, dim=1))
-
-
-        return s_out, loss, loss_distill
+        return s_out, pa_loss, pi_loss, lo_loss
