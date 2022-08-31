@@ -121,17 +121,11 @@ class Trainer(object):
                 image, target = image.cuda(), target.cuda()
             self.scheduler(optimizer, i, epoch, self.best_pred)
             optimizer.zero_grad()
-            output, loss, loss_distill = self.d_net(image)
-            #print(loss_kd/ batch_size)
-
+            
+            output, pa_loss, pi_loss, lo_loss = self.d_net(image)
             loss_seg = self.criterion(output, target)
-            #print('###########################')
-           # print(loss_seg)
-           # print('################################')
-            #loss = loss_seg + loss_distill.sum() / batch_size * 1e-5
-            #loss = loss_seg + loss_kd
-            #loss = loss_seg + 100 * loss_distill
-            loss = loss_seg + loss_distill + 100*loss
+            loss = loss_seg + pa_loss + pi_loss + lo_loss
+            
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
@@ -263,6 +257,14 @@ def main():
                         help='evaluuation interval (default: 1)')
     parser.add_argument('--no-val', action='store_true', default=False,
                         help='skip validation during training')
+    
+    #loss options
+    parser.add_argument('--pi_lambda', type=int, default=None,
+                        help='coefficient for pixelwise loss (default: 100)')
+    parser.add_argument('--pa_lambda', type=int, default=None,
+                        help='coefficient for pairwise loss (default: 1)')    
+    parser.add_argument('--lo_lambda', type=int, default=None,
+                        help='coefficient for logits loss (default: 1)')
 
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
