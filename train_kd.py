@@ -44,7 +44,7 @@ class Trainer(object):
                              freeze_bn=args.freeze_bn)
        # checkpoint = torch.load('/kaggle/working/model.pth.tar')
         #self.s_net.load_state_dict(checkpoint['state_dict'])
-        self.d_net = distiller.Distiller(self.t_net, self.s_net)
+        self.d_net = distiller.Distiller(self.t_net, self.s_net, self.args)
 
        # print('Teacher Net: ')
         #print(self.t_net)
