@@ -77,7 +77,7 @@ class Distiller(nn.Module):
 
         self.t_net = t_net
         self.s_net = s_net
-        self.argss = args
+        self.args = args
 
         self.criterion = sim_dis_compute
         self.temperature = 1
