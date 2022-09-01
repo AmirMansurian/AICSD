@@ -62,7 +62,7 @@ def get_margin_from_BN(bn):
     return torch.FloatTensor(margin).to(std.device)
 
 class Distiller(nn.Module):
-    def __init__(self, t_net, s_net):
+    def __init__(self, t_net, s_net, args):
         super(Distiller, self).__init__()
 
         t_channels = t_net.get_channel_num()
@@ -77,6 +77,7 @@ class Distiller(nn.Module):
 
         self.t_net = t_net
         self.s_net = s_net
+        self.argss = args
 
         self.criterion = sim_dis_compute
         self.temperature = 1
