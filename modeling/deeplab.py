@@ -81,7 +81,6 @@ class DeepLab(nn.Module):
     def extract_feature(self, input):
         feats, x, low_level_feat = self.backbone.extract_feature(input)
         feat, x = self.aspp.extract_feature(x)
-        dist_feats = feat
         feats += feat
         feat, x = self.decoder.extract_feature(x, low_level_feat)
         feats += feat
@@ -94,5 +93,5 @@ class DeepLab(nn.Module):
         #b = cv2.applyColorMap(np.uint8(b), cv2.COLORMAP_JET)
         #cv2.imwrite('feature.jpeg', b)  
 
-        return feats, x, dist_feats
+        return feats, x
 
