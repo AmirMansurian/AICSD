@@ -7,22 +7,6 @@ import numpy as np
 import math
 
 
-from pytorch_grad_cam import GradCAM
-from pytorch_grad_cam.utils.image import show_cam_on_image, preprocess_image
-
-class SemanticSegmentationTarget:
-    def __init__(self, category, mask):
-        self.category = category
-        self.mask = torch.from_numpy(mask)
-        if torch.cuda.is_available():
-            self.mask = self.mask.cuda()
-        
-    def __call__(self, model_output):
-        return (model_output[self.category:, :, : ] * self.mask).sum()
-
-
-
-
 def L2(f_):
     return (((f_**2).sum(dim=1))**0.5).reshape(f_.shape[0],1,f_.shape[2],f_.shape[3]) + 1e-8
 
@@ -76,18 +60,6 @@ def get_margin_from_BN(bn):
             margin.append(-3 * s)
 
     return torch.FloatTensor(margin).to(std.device)
-
-
-
-class SemanticSegmentationTarget:
-    def __init__(self, category, mask):
-        self.category = category
-        self.mask = torch.from_numpy(mask)
-        if torch.cuda.is_available():
-            self.mask = self.mask.cuda()
-        
-    def __call__(self, model_output):
-        return (model_output[self.category, :, : ] * self.mask).sum()
 
 
 class Distiller(nn.Module):
@@ -159,23 +131,6 @@ class Distiller(nn.Module):
         lo_loss = 0
         if self.args.lo_lambda is not None: #logits loss
           lo_loss =  self.args.lo_lambda * torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), F.softmax(t_out / self.temperature, dim=1))
-
-
-        sem_classes = [
-              '__background__', 'aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus',
-              'car', 'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike',
-              'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor'
-          ]
-        sem_class_to_idx = {cls: idx for (idx, cls) in enumerate(sem_classes)}
-        
-        gcam_loss = 0
-        if self.args.gcam_lambda is not None:
-          for i in range(4) : 
-            for cls in sem_classes : 
-              t_cam = self.gcam(x[i], t_out, self.t_net, sem_class_to_idx, cls)
-              s_cam = self.gcam(x[i], s_out, self.s_net, sem_class_to_idx, cls)
-              gcam_loss += (F.normalize(torch.from_numpy(t_cam)) - F.normalize(torch.from_numpy(s_cam))).pow(2).mean()
-          gcam_loss *= self.args.gcam_lambda  
          
             
-        return s_out, pa_loss, pi_loss, lo_loss, gcam_loss
+        return s_out, pa_loss, pi_loss, lo_loss
