@@ -122,9 +122,9 @@ class Trainer(object):
             self.scheduler(optimizer, i, epoch, self.best_pred)
             optimizer.zero_grad()
             
-            output, pa_loss, pi_loss, lo_loss = self.d_net(image)
+            output, pa_loss, pi_loss, lo_loss, gcam_loss = self.d_net(image)
             loss_seg = self.criterion(output, target)
-            loss = loss_seg + pa_loss + pi_loss + lo_loss
+            loss = loss_seg + pa_loss + pi_loss + lo_loss + gcam_loss
             
             loss.backward()
             optimizer.step()
@@ -264,6 +264,9 @@ def main():
     parser.add_argument('--pa_lambda', type=int, default=None,
                         help='coefficient for pairwise loss (default: 1)')    
     parser.add_argument('--lo_lambda', type=int, default=None,
+                        help='coefficient for logits loss (default: 1)')
+    
+    parser.add_argument('--gcam_lambda', type=int, default=None,
                         help='coefficient for logits loss (default: 1)')
 
     args = parser.parse_args()
