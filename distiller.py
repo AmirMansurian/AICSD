@@ -79,31 +79,10 @@ class Distiller(nn.Module):
         self.t_net = t_net
         self.s_net = s_net
         self.args = args
-        self.t_net.eval()
-
-        #print(t_net)
-
         self.loss_divider = [8, 4, 2, 1, 1, 4*4]
         self.criterion = sim_dis_compute
         self.temperature = 1
         self.scale = 0.5
-
-
-    def gcam(self, image, out, net, sem_class_to_idx, cls): 
-      car_category = sem_class_to_idx[cls]
-      car_mask = out[0, :, :, :].argmax(axis=0).detach().cpu().numpy()
-      car_mask_float = np.float32(car_mask == car_category)
-
-      target_layers = [net.aspp.conv1]
-      targets = [SemanticSegmentationTarget(car_category, car_mask_float)]
-      with GradCAM(model=net,
-                        target_layers=target_layers,
-                        use_cuda=torch.cuda.is_available()) as cam:
-                grayscale_cam = cam(input_tensor=torch.unsqueeze(image, 0),
-                                    targets=targets)[0, :]
-
-      return grayscale_cam
-
 
     def forward(self, x):
 
@@ -111,26 +90,26 @@ class Distiller(nn.Module):
         s_feats, s_out = self.s_net.extract_feature(x)
         feat_num = len(t_feats)
 
-        pa_loss = 0 
-        if self.args.pa_lambda is not None: # pairwise loss
-          feat_T = t_feats[4]
-          feat_S = s_feats[4]
-          total_w, total_h = feat_T.shape[2], feat_T.shape[3]
-          patch_w, patch_h = int(total_w*self.scale), int(total_h*self.scale)
-          maxpool = nn.MaxPool2d(kernel_size=(patch_w, patch_h), stride=(patch_w, patch_h), padding=0, ceil_mode=True) # change
-          pa_loss = self.args.pa_lambda * self.criterion(maxpool(feat_S), maxpool(feat_T))
+        #pa_loss = 0 
+        #if self.args.pa_lambda is not None: # pairwise loss
+         # feat_T = t_feats[4]
+         # feat_S = s_feats[4]
+         # total_w, total_h = feat_T.shape[2], feat_T.shape[3]
+         # patch_w, patch_h = int(total_w*self.scale), int(total_h*self.scale)
+         # maxpool = nn.MaxPool2d(kernel_size=(patch_w, patch_h), stride=(patch_w, patch_h), padding=0, ceil_mode=True) # change
+          #pa_loss = self.args.pa_lambda * self.criterion(maxpool(feat_S), maxpool(feat_T))
    
 
         pi_loss = 0
-        if self.args.pi_lambda is not None: # pixelwise loss
-          TF = F.normalize(t_feats[5].pow(2).mean(1)) 
-          SF = F.normalize(s_feats[5].pow(2).mean(1)) 
-          pi_loss = self.args.pi_lambda * (TF - SF).pow(2).mean()
+        #if self.args.pi_lambda is not None: # pixelwise loss
+        TF = F.normalize(t_feats[5].pow(2).mean(1)) 
+        SF = F.normalize(s_feats[5].pow(2).mean(1)) 
+        pi_loss =  (TF - SF).pow(2).mean()
 
 
-        lo_loss = 0
-        if self.args.lo_lambda is not None: #logits loss
-          lo_loss =  self.args.lo_lambda * torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), F.softmax(t_out / self.temperature, dim=1))
+       # lo_loss = 0
+        ##if self.args.lo_lambda is not None: #logits loss
+         # lo_loss =  self.args.lo_lambda * torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), F.softmax(t_out / self.temperature, dim=1))
          
             
-        return s_out, pa_loss, pi_loss, lo_loss
+        return s_out, 0, pi_loss, 0
