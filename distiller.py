@@ -112,4 +112,4 @@ class Distiller(nn.Module):
          # lo_loss =  self.args.lo_lambda * torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), F.softmax(t_out / self.temperature, dim=1))
          
             
-        return s_out, 0, pi_loss, 0
+        return s_out, pi_loss
