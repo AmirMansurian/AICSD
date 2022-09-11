@@ -266,7 +266,7 @@ def main():
     parser.add_argument('--lo_lambda', type=int, default=None,
                         help='coefficient for logits loss (default: 1)')
     
-    parser.add_argument('--teacher_path', type=string, default='/kaggle/working/checkpoint.pth.tar',
+    parser.add_argument('--teacher_path', type=str, default='/kaggle/working/checkpoint.pth.tar',
                         help='path to the pretrained teache')
 
     args = parser.parse_args()
