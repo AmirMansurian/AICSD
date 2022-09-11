@@ -34,7 +34,7 @@ class Trainer(object):
                              output_stride=args.out_stride,
                              sync_bn=args.sync_bn,
                              freeze_bn=args.freeze_bn)
-        checkpoint = torch.load('/kaggle/working/checkpoint.pth.tar')
+        checkpoint = torch.load('/kaggle/working/' + args.teacher_path)
         self.t_net.load_state_dict(checkpoint['state_dict'])
 
         self.s_net = DeepLab(num_classes=self.nclass,
@@ -266,8 +266,8 @@ def main():
     parser.add_argument('--lo_lambda', type=int, default=None,
                         help='coefficient for logits loss (default: 1)')
     
-    parser.add_argument('--gcam_lambda', type=int, default=None,
-                        help='coefficient for logits loss (default: 1)')
+    parser.add_argument('--teacher_path', type=string, default='/kaggle/working/checkpoint.pth.tar',
+                        help='path to the pretrained teache')
 
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
