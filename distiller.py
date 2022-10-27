@@ -90,26 +90,11 @@ class Distiller(nn.Module):
         s_feats, s_out = self.s_net.extract_feature(x)
         feat_num = len(t_feats)
 
-        #pa_loss = 0 
-        #if self.args.pa_lambda is not None: # pairwise loss
-         # feat_T = t_feats[4]
-         # feat_S = s_feats[4]
-         # total_w, total_h = feat_T.shape[2], feat_T.shape[3]
-         # patch_w, patch_h = int(total_w*self.scale), int(total_h*self.scale)
-         # maxpool = nn.MaxPool2d(kernel_size=(patch_w, patch_h), stride=(patch_w, patch_h), padding=0, ceil_mode=True) # change
-          #pa_loss = self.args.pa_lambda * self.criterion(maxpool(feat_S), maxpool(feat_T))
-   
-
-        pi_loss = 0
-        #if self.args.pi_lambda is not None: # pixelwise loss
-        TF = F.normalize(t_feats[5].pow(2).mean(1)) 
-        SF = F.normalize(s_feats[5].pow(2).mean(1)) 
-        pi_loss =  (TF - SF).pow(2).mean()
-
-
-       # lo_loss = 0
-        ##if self.args.lo_lambda is not None: #logits loss
-         # lo_loss =  self.args.lo_lambda * torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), F.softmax(t_out / self.temperature, dim=1))
+        loss_distill = 0
+        for i in range(feat_num):
+            s_feats[i] = self.Connectors[i](s_feats[i])
+            loss_distill += distillation_loss(s_feats[i], t_feats[i].detach(), getattr(self, 'margin%d' % (i+1))) \
+                            / self.loss_divider[i]
          
             
-        return s_out, pi_loss
+        return s_out, loss_distill
