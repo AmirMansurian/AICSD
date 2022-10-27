@@ -122,9 +122,10 @@ class Trainer(object):
             self.scheduler(optimizer, i, epoch, self.best_pred)
             optimizer.zero_grad()
             
-            output, pi_loss = self.d_net(image)
+            output, loss_distill = self.d_net(image)
             loss_seg = self.criterion(output, target)
-            loss = loss_seg + 100 * pi_loss
+            #loss = loss_seg + 100 * pi_loss
+            loss = loss_seg + loss_distill.sum() / batch_size * 1e-5
             
             loss.backward()
             optimizer.step()
