@@ -92,8 +92,8 @@ class Distiller(nn.Module):
 
         pa_loss = 0 
         if self.args.pa_lambda is not None: # pairwise loss
-          feat_T = t_feats[5]
-          feat_S = s_feats[5]
+          feat_T = t_feats[4]
+          feat_S = s_feats[4]
           total_w, total_h = feat_T.shape[2], feat_T.shape[3]
           patch_w, patch_h = int(total_w*self.scale), int(total_h*self.scale)
           maxpool = nn.MaxPool2d(kernel_size=(patch_w, patch_h), stride=(patch_w, patch_h), padding=0, ceil_mode=True) # change
@@ -102,8 +102,8 @@ class Distiller(nn.Module):
 
         pi_loss = 0
         if self.args.pi_lambda is not None: # pixelwise loss
-          TF = F.normalize(t_feats[4].pow(2).mean(1)) 
-          SF = F.normalize(s_feats[4].pow(2).mean(1)) 
+          TF = F.normalize(t_feats[5].pow(2).mean(1)) 
+          SF = F.normalize(s_feats[5].pow(2).mean(1)) 
           pi_loss = self.args.pi_lambda * (TF - SF).pow(2).mean()
          
             
