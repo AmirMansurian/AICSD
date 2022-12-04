@@ -2,6 +2,8 @@
  This is Implementation of [An Efficient Knowledge Distillation Architecture for Real-time Semantic Segmentation](https://drive.google.com/file/d/1wrWg54G1ex-8WRYVMGziWTapXFsFMEW0/view?usp=drivesdk).
 
 ### Method Diagram
+The architecture of both the teacher and student networks is Deeplab-V3 +, although their encoders are different. Teacher network is fixed the during the training process; only the student network will be trained with two distillation losses and cross-entropy loss. The pixel-wise distillation module uses the preReLU feature map of the last convolution layer of the decoder before probability scores to transfer detailed spatial information. The pair-wise distillation module uses the feature map of the last layer of the encoder to create a pair-wise similarity matrix and transfer global information.
+
 <img src="https://github.com/AmirMansurian/KD/blob/main/Images/KD.png"  width="700" height="500" />
 
 ### Experimental Results
@@ -11,6 +13,8 @@ Results of each distillation method on the [PascalVoc 2012](http://host.robots.o
 
 
 ### Visualization
+Comparison of segmentation results between ground-truth, teacher
+prediction, student prediction and prediction after distillation.
 <img src="https://github.com/AmirMansurian/KD/blob/main/Images/experiments.png"   width="700" height="600"/>
 
 ### How to run
