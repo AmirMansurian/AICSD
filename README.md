@@ -1,36 +1,20 @@
 ## Knowledge Distillation in Semantic Segmentation - Pascal VOC
-### Deeplab architecture
+ This is Implementation of [An Efficient Knowledge Distillation Architecture for Real-time Semantic Segmentation](https://drive.google.com/file/d/1wrWg54G1ex-8WRYVMGziWTapXFsFMEW0/view?usp=drivesdk).
 
-![Alt Text](https://raw.githubusercontent.com/AmirMansurian/KD/main/Images/Deeplab%20Architecture.png)
+### Method Diagram
+<img src="https://github.com/AmirMansurian/KD/blob/main/Images/KD.png"  width="700" height="500" />
 
-
-### Teacher and Student
-
-|   Model  |  Backbone  | Model size | Epoches | mIOU |
-|:----------:|:---------:|:------------:|:------------:|:----------:|
-| Deeplab | ResNet 18 |    16.6    |    120    |  67/50 %   |
-| Deeplab | ResNet 101 |     59.3M      |   120   |  74/08 %   |
+### Experimental Results
+<img src="https://github.com/AmirMansurian/KD/blob/main/Images/results.png"   width="700" height="300"/>
 
 
-### Settings
+### Visualization
+<img src="https://github.com/AmirMansurian/KD/blob/main/Images/experiments.png"   width="700" height="600"/>
 
-|   Teacher  |  Student  | Loss | mIOU |
-|:----------:|:---------:|:------------:|:------------:|
-| ResNet 101 | ResNet 18 |   CE + all feature_maps    |    67/65 %    | 
-| ResNet 101 | ResNet 18 |   CE + backbone feature_maps    |    67/75 %    | 
-| ResNet 101 | ResNet 18 |   CE + grad_based    |    67/79 %    |  
-| ResNet 101 | ResNet 18 |   CE + Logits    |    68/67 %    |  
-| ResNet 101 | ResNet 18 |    CE + ASPP feature_maps    |     69/15 %   |
-| ResNet 101 | ResNet 18 |    CE + ASPP + Logits    |    69/38 %   |
-| ResNet 101 | ResNet 18 |    CE + last layer feature_maps    |    69/82 %   |
-| ResNet 101 | ResNet 18 |    CE + last layer feature_maps + logits    |    69/43 %   |
-
-
-### Visuialization
-
-![Alt Text](https://raw.githubusercontent.com/AmirMansurian/KD/main/Images/input.jpeg)
-![Alt Text](https://raw.githubusercontent.com/AmirMansurian/KD/main/Images/feature.jpeg)
-![Alt Text](https://raw.githubusercontent.com/AmirMansurian/KD/main/Images/grad.jpeg)
+### How to run
+  ```shell
+  python train_kd.py --backbone resner18 --dataset pascal  --pa_lambda 1 --pi_lambda 100 
+  ```
 
 ### Teacher model
 Download following pre-trained teacher network and put it into ```./Segmentation/pretrained``` directory
