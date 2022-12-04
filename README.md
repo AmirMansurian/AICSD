@@ -13,8 +13,8 @@ Results of each distillation method on the [PascalVoc 2012](http://host.robots.o
 
 
 ### Visualization
-Comparison of segmentation results between ground-truth, teacher
-prediction, student prediction and prediction after distillation.
+Comparison of segmentation results between ground-truth, teacher prediction, student prediction and prediction after distillation.
+
 <img src="https://github.com/AmirMansurian/KD/blob/main/Images/experiments.png"   width="700" height="600"/>
 
 ### How to run
