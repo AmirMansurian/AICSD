@@ -1,10 +1,12 @@
-## Knowledge Distillation in Semantic Segmentation - Pascal VOC
+## Knowledge Distillation in Semantic Segmentation 
  This is Implementation of [An Efficient Knowledge Distillation Architecture for Real-time Semantic Segmentation](https://drive.google.com/file/d/1wrWg54G1ex-8WRYVMGziWTapXFsFMEW0/view?usp=drivesdk).
 
 ### Method Diagram
 <img src="https://github.com/AmirMansurian/KD/blob/main/Images/KD.png"  width="700" height="500" />
 
 ### Experimental Results
+Results of each distillation method on the [PascalVoc 2012](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/) validation set with two different backbones. Results are average of 3 runs with different random seeds.
+
 <img src="https://github.com/AmirMansurian/KD/blob/main/Images/results.png"   width="700" height="300"/>
 
 
