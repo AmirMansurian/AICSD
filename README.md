@@ -21,3 +21,13 @@ Download following pre-trained teacher network and put it into ```./Segmentation
 - [ResNet101-DeepLabV3+](https://drive.google.com/open?id=1Pz2OT5KoSNvU5rc3w5d2R8_0OBkKSkLR)
 
  measure performance on **test** set with [Pascal VOC evaluation server](http://host.robots.ox.ac.uk/pascal/VOC/).
+ 
+ ## Citation
+If you use this repository for your research or wish to refer to our distillation method, please use the following BibTeX entry:
+```
+@article{
+}
+```
+
+### Acknowledgement
+This codebase is heavily borrowed from [A Comprehensive Overhaul of Feature Distillation ](https://github.com/clovaai/overhaul-distillation) and [structure_knowledge_distillation](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=2ahUKEwiM3vjGyuD7AhXohf0HHcA4B44QFnoECDIQAQ&url=https%3A%2F%2Fgithub.com%2FirfanICMLL%2Fstructure_knowledge_distillation&usg=AOvVaw2rg7lYss4wqcvKKDH0UWoN). Thanks for their excellent works.
