@@ -19,7 +19,7 @@ Comparison of segmentation results between ground-truth, teacher prediction, stu
 
 ### How to run
   ```shell
-  python train_kd.py --backbone resner18 --dataset pascal  --pa_lambda 1 --pi_lambda 100 
+  python train_kd.py --backbone resnet18 --dataset pascal  --pa_lambda 1 --pi_lambda 100 
   ```
 
 ### Teacher model
