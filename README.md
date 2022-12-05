@@ -23,7 +23,7 @@ Comparison of segmentation results between ground-truth, teacher prediction, stu
   ```
 
 ### Teacher model
-Download following pre-trained teacher network and put it into ```./Segmentation/pretrained``` directory
+Download following pre-trained teacher network and put it into ```pretrained/``` directory
 - [ResNet101-DeepLabV3+](https://drive.google.com/open?id=1Pz2OT5KoSNvU5rc3w5d2R8_0OBkKSkLR)
 
  measure performance on **test** set with [Pascal VOC evaluation server](http://host.robots.ox.ac.uk/pascal/VOC/).
