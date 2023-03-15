@@ -41,7 +41,11 @@ class VOCSegmentation(Dataset):
         self.im_ids = []
         self.images = []
         self.categories = []
-
+        
+        print(self._base_dir)
+        print(_splits_dir)
+        print(os.path.join(os.path.join(_splits_dir, splt + '.txt')))
+        
         for splt in self.split:
             with open(os.path.join(os.path.join(_splits_dir, splt + '.txt')), "r") as f:
                 lines = f.read().splitlines()
