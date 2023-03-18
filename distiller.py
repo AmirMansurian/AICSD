@@ -109,14 +109,6 @@ class Distiller(nn.Module):
         
         lo_loss = 0
         if self.args.lo_lambda is not None: #logits loss
-          #lo_loss =  self.args.lo_lambda * torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), F.softmax(t_out / self.temperature, dim=1))
-          ICCS = torch.empty((21,21))
-          ICCT = torch.empty((21,21))
-          for i in range(21):
-            for j in range(21):
-              ICCS[i, j] = self.args.lo_lambda * torch.nn.KLDivLoss()(F.log_softmax(s_out[:, i, :, :] / self.temperature, dim=1), F.softmax(s_out[:, j, :, :] / self.temperature, dim=1))
-              ICCT[i, j] = self.args.lo_lambda * torch.nn.KLDivLoss()(F.log_softmax(t_out[:, i, :, :] / self.temperature, dim=1), F.softmax(t_out[:, j, :, :] / self.temperature, dim=1))
-
-          lo_loss =  self.args.lo_lambda * (ICCS - ICCT).pow(2).mean()
+          lo_loss =  self.args.lo_lambda * torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), F.softmax(t_out / self.temperature, dim=1))
 
         return s_out, pa_loss, pi_loss, lo_loss
