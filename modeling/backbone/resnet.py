@@ -4,6 +4,7 @@ import torch.utils.model_zoo as model_zoo
 from modeling.sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
 import torch.nn.functional as F
 
+
 class BasicBlock(nn.Module):
     expansion = 1
 
@@ -198,6 +199,18 @@ class ResNet(nn.Module):
         feat3 = self.layer3(feat2)
         feat4 = self.layer4(feat3)
         out = F.relu(feat4)
+
+       # print(feat1.shape)
+       # print(feat2.shape)
+        #print(feat3.shape)
+        #print(feat4.shape)
+        #print(low_level_feat.shape)
+
+        #img = torch.sum(feat1[0], axis=0).cpu().detach().numpy()
+        #b = np.copy(img)
+        #cv2.normalize(img,b,0,255,cv2.NORM_MINMAX)
+        #b = cv2.applyColorMap(np.uint8(b), cv2.COLORMAP_JET)
+       # cv2.imwrite('feature.jpeg', b)         
 
         return [feat1, feat2, feat3, feat4], out, low_level_feat
 

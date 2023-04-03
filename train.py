@@ -3,6 +3,32 @@ import os
 import numpy as np
 from tqdm import tqdm
 
+
+
+
+
+
+
+
+import warnings
+warnings.filterwarnings('ignore')
+warnings.simplefilter('ignore')
+import torch
+import torch.functional as F
+import numpy as np
+import requests
+import torchvision
+from PIL import Image
+from pytorch_grad_cam.utils.image import show_cam_on_image, preprocess_image
+from pytorch_grad_cam import GradCAM
+
+
+
+
+
+
+
+
 from mypath import Path
 from dataloaders import make_data_loader
 from modeling.sync_batchnorm.replicate import patch_replication_callback
@@ -53,6 +79,7 @@ class Trainer(object):
             weight = None
         self.criterion = SegmentationLosses(weight=weight, cuda=args.cuda).build_loss(mode=args.loss_type)
         self.model, self.optimizer = model, optimizer
+        self.target_layer = model.aspp.conv1
         
         # Define Evaluator
         self.evaluator = Evaluator(self.nclass)
@@ -98,6 +125,7 @@ class Trainer(object):
                 image, target = image.cuda(), target.cuda()
             self.scheduler(self.optimizer, i, epoch, self.best_pred)
             self.optimizer.zero_grad()
+            
             output = self.model(image)
             loss = self.criterion(output, target)
             loss.backward()

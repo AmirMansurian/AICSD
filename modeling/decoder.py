@@ -57,9 +57,12 @@ class Decoder(nn.Module):
 
         x = F.interpolate(x, size=low_level_feat.size()[2:], mode='bilinear', align_corners=True)
         x = torch.cat((x, low_level_feat), dim=1)
+  
         x = self.last_conv[0:6](x)
         feat1 = x
         x = self.last_conv[6:](x)
+
+       # print(feat1.shape)
 
         return [feat1], x
 
