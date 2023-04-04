@@ -2,8 +2,7 @@ import argparse
 import os
 import numpy as np
 from tqdm import tqdm
-import torchvision.transforms as transforms
-
+import wandb
 
 from mypath import Path
 from dataloaders import make_data_loader
@@ -14,9 +13,8 @@ from utils.calculate_weights import calculate_weigths_labels
 from utils.lr_scheduler import LR_Scheduler
 from utils.saver import Saver
 from utils.metrics import Evaluator
-import distiller
 
-import torch
+import distiller
 
 class Trainer(object):
     def __init__(self, args):
@@ -36,12 +34,7 @@ class Trainer(object):
                              output_stride=args.out_stride,
                              sync_bn=args.sync_bn,
                              freeze_bn=args.freeze_bn)
-
-        #print(self.t_net)
-                             
-        
-        # checkpoint = torch.load('/content/deeplab-resnet.pth.tar')
-        checkpoint = torch.load('/kaggle/working/deeplab-resnet.pth.tar')
+        checkpoint = torch.load('/kaggle/working/' + args.teacher_path)
         self.t_net.load_state_dict(checkpoint['state_dict'])
 
         self.s_net = DeepLab(num_classes=self.nclass,
@@ -49,17 +42,14 @@ class Trainer(object):
                              output_stride=args.out_stride,
                              sync_bn=args.sync_bn,
                              freeze_bn=args.freeze_bn)
-
-        #checkpoint = torch.load('/content/drive/MyDrive/KD/run/pascal/deeplab(resnet101->resnet18)/model_best.pth.tar')
-        #checkpoint = torch.load('/kaggle/working/deeplab-resnet.pth.tar')
+       # checkpoint = torch.load('/kaggle/working/model.pth.tar')
         #self.s_net.load_state_dict(checkpoint['state_dict'])
-                            
-        self.d_net = distiller.Distiller(self.t_net, self.s_net, args)
+        self.d_net = distiller.Distiller(self.t_net, self.s_net, self.args)
 
-        print('Teacher Net: ')
-        print(self.t_net)
-        print('Student Net: ')
-        print(self.s_net)
+       # print('Teacher Net: ')
+        #print(self.t_net)
+        #print('Student Net: ')
+        #print(self.s_net)
         print('the number of teacher model parameters: {}'.format(
             sum([p.data.nelement() for p in self.t_net.parameters()])))
         print('the number of student model parameters: {}'.format(
@@ -104,9 +94,8 @@ class Trainer(object):
             self.s_net = torch.nn.DataParallel(self.s_net).cuda()
             self.d_net = torch.nn.DataParallel(self.d_net).cuda()
 
-
         # Resuming checkpoint
-        self.best_pred = 0.0
+        self.best_pred = 0.0       
 
         # Clear start epoch if fine-tuning
         if args.ft:
@@ -133,11 +122,10 @@ class Trainer(object):
             self.scheduler(optimizer, i, epoch, self.best_pred)
             optimizer.zero_grad()
             
-            output, pa_loss, pi_loss = self.d_net(image)
+            output, pa_loss, pi_loss, lo_loss = self.d_net(image)
             loss_seg = self.criterion(output, target)
-            loss = loss_seg + pa_loss + pi_loss 
-
-
+            loss = loss_seg + pa_loss + pi_loss + lo_loss
+            
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
@@ -145,6 +133,7 @@ class Trainer(object):
 
         print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
         print('Loss: %.3f' % train_loss)
+        wandb.log({"train loss": train_loss})
 
         if self.args.no_val:
             # save checkpoint every epoch
@@ -155,6 +144,7 @@ class Trainer(object):
                 'best_pred': self.best_pred,
             }, is_best)
 
+
     def validation(self, epoch):
         self.s_net.eval()
         self.evaluator.reset()
@@ -162,37 +152,19 @@ class Trainer(object):
         test_loss = 0.0
         for i, sample in enumerate(tbar):
             image, target = sample['image'], sample['label']
-            print(image.shape)
             if self.args.cuda:
                 image, target = image.cuda(), target.cuda()
             with torch.no_grad():
-                #output = self.s_net(image)
-                #output2 = self.t_net(image)
-                output = self.d_net(image)
-
-            
-            ##############################################################################
-
-            #############################################################    
-           # _, predictions = torch.max(output[1], 1)
-           # label_to_rgb = transforms.Compose([
-            #    ext_transforms.LongTensorToRGBPIL(color_encoding),
-            #    transforms.ToTensor()
-            #])
-            #color_predictions = util.batch_transform(predictions.cpu(), label_to_rgb)
-            #util.imshow_batch(image.data.cpu(), color_predictions, str(i)+'t')
-            
-            
-            loss = self.criterion(output[0], target)
+                output = self.s_net(image)
+            loss = self.criterion(output, target)
             test_loss += loss.item()
             tbar.set_description('Test loss: %.3f' % (test_loss / (i + 1)))
-            pred = output[0].data.cpu().numpy()
+            pred = output.data.cpu().numpy()
             target = target.cpu().numpy()
             pred = np.argmax(pred, axis=1)
             # Add batch sample into evaluator
             self.evaluator.add_batch(target, pred)
 
-        #prnt('a')
         # Fast test during the training
         Acc = self.evaluator.Pixel_Accuracy()
         Acc_class = self.evaluator.Pixel_Accuracy_Class()
@@ -202,6 +174,7 @@ class Trainer(object):
         print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
         print("Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(Acc, Acc_class, mIoU, FWIoU))
         print('Loss: %.3f' % test_loss)
+        wandb.log({"test loss": test_loss, "mIOU": mIoU})
 
         new_pred = mIoU
         if new_pred > self.best_pred:
@@ -284,7 +257,7 @@ def main():
                         help='evaluuation interval (default: 1)')
     parser.add_argument('--no-val', action='store_true', default=False,
                         help='skip validation during training')
-
+    
     #loss options
     parser.add_argument('--pi_lambda', type=int, default=None,
                         help='coefficient for pixelwise loss (default: 100)')
@@ -292,8 +265,9 @@ def main():
                         help='coefficient for pairwise loss (default: 1)')    
     parser.add_argument('--lo_lambda', type=int, default=None,
                         help='coefficient for logits loss (default: 1)')
-    parser.add_argument('--gcam_lambda', type=int, default=None,
-                        help='coefficient for logits loss (default: 1)')                    
+    
+    parser.add_argument('--teacher_path', type=str, default='/kaggle/working/checkpoint.pth.tar',
+                        help='path to the pretrained teache')
 
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -302,10 +276,19 @@ def main():
             args.gpu_ids = [int(s) for s in args.gpu_ids.split(',')]
         except ValueError:
             raise ValueError('Argument --gpu_ids must be a comma-separated list of integers only')
-
-
-
-
+            
+            
+     
+    wandb.init(project="Knowledge Deistillation", entity="ipl_runs", name="feature maps",
+      config={
+      "learning_rate": 0.007,
+      "architecture": "DeepLab",
+      "dataset": "PascalVoc 2012",
+      "epochs": 120,
+      })
+    
+    
+    
 
     # default settings for epochs, batch_size and lr
     if args.epochs is None:
@@ -342,6 +325,8 @@ def main():
         trainer.training(epoch)
         if not trainer.args.no_val and epoch % args.eval_interval == (args.eval_interval - 1):
             trainer.validation(epoch)
+            
+    wandb.finish()
 
 
 if __name__ == "__main__":
