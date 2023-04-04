@@ -40,8 +40,8 @@ class Trainer(object):
         #print(self.t_net)
                              
         
-        checkpoint = torch.load('/content/deeplab-resnet.pth.tar')
-        #checkpoint = torch.load('/kaggle/working/deeplab-resnet.pth.tar')
+        # checkpoint = torch.load('/content/deeplab-resnet.pth.tar')
+        checkpoint = torch.load('/kaggle/working/deeplab-resnet.pth.tar')
         self.t_net.load_state_dict(checkpoint['state_dict'])
 
         self.s_net = DeepLab(num_classes=self.nclass,
