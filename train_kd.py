@@ -279,7 +279,7 @@ def main():
             
             
      
-    wandb.init(project="Knowledge Distillation", entity="ipl_runs", name="feature maps",
+    wandb.init(project="Knowledge Distillation", name="feature maps",
       config={
       "learning_rate": 0.007,
       "architecture": "DeepLab",
