@@ -284,7 +284,7 @@ def main():
       "learning_rate": 0.007,
       "architecture": "DeepLab",
       "dataset": "PascalVoc 2012",
-      "epochs": args.epochs,
+      "epochs": 50,
       })
     
     
