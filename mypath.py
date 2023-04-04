@@ -5,7 +5,8 @@ class Path(object):
     @staticmethod
     def db_root_dir(dataset):
         if dataset == 'pascal':
-            return 'VOCdevkit/VOC2012/'  # folder that contains VOCdevkit/.
+            # return 'VOCdevkit/VOC2012/'  # folder that contains VOCdevkit/. //colab
+            return '/kaggle/input/voc2012/'  # folder that contains VOCdevkit/. //kaggle
         elif dataset == 'sbd':
             return '/path/to/datasets/benchmark_RELEASE/'  # folder that contains dataset/.
         elif dataset == 'cityscapes':
