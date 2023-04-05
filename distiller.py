@@ -107,8 +107,8 @@ class Distiller(nn.Module):
           pi_loss = self.args.pi_lambda * (TF - SF).pow(2).mean()
         
         
-        lo_loss = 0
-        if self.args.lo_lambda is not None: #logits loss
+        ic_loss = 0
+        if self.args.ic_lambda is not None: #logits loss
           b, c, h, w = s_out.shape
           s_logit = torch.reshape(s_out, (b, c, h*w))
           t_logit = torch.reshape(t_out, (b, c, h*w))
@@ -120,25 +120,31 @@ class Distiller(nn.Module):
           ICCS = torch.nn.functional.normalize(ICCS, dim = 2)
 
           G_diff = ICCS - ICCT
-          lo_loss = (G_diff * G_diff).view(b, -1).sum() / (c*b)
+          lo_loss = self.args.ic_lambda * (G_diff * G_diff).view(b, -1).sum() / (c*b)
+        
+        
+        
+        lo_loss = 0
+        if self.args.lo_lambda is not None: #logits loss
           #lo_loss =  self.args.lo_lambda * torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), F.softmax(t_out / self.temperature, dim=1))
-          '''
           b, c, h, w = s_out.shape
           s_logit = torch.reshape(s_out, (b, c, h*w))
           t_logit = torch.reshape(t_out, (b, c, h*w))
 
-          s_logit = F.softmax(s_logit / self.temperature, dim=2)
-          t_logit = F.softmax(t_logit / self.temperature, dim=2)
+          s_logit = F.softmax(s_out / self.temperature, dim=2)
+          t_logit = F.softmax(t_out / self.temperature, dim=2)
           kl = torch.nn.KLDivLoss(reduction="batchmean")
-
-          ICCS = torch.empty((21,21))
-          ICCT = torch.empty((21,21))
-
+          ICCS = torch.empty((21,21)).cuda()
+          ICCT = torch.empty((21,21)).cuda()
           for i in range(21):
             for j in range(i, 21):
               ICCS[j, i] = ICCS[i, j] = kl(s_logit[:, i], s_logit[:, j])
               ICCT[j, i] = ICCT[i, j] = kl(t_logit[:, i], t_logit[:, j])
 
-          lo_loss =  self.args.lo_lambda * (ICCS - ICCT).pow(2).mean() ''' 
+          ICCS = torch.nn.functional.normalize(ICCS, dim = 1)
+          ICCT = torch.nn.functional.normalize(ICCT, dim = 1)
+          lo_loss =  self.args.lo_lambda * (ICCS - ICCT).pow(2).mean()/b 
+        
+        kd_loss = pa_loss + pi_loss + ic_loss + lo_loss
 
-        return s_out, pa_loss, pi_loss, lo_loss
+        return s_out, kd_loss
