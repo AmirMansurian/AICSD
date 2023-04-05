@@ -122,9 +122,9 @@ class Trainer(object):
             self.scheduler(optimizer, i, epoch, self.best_pred)
             optimizer.zero_grad()
             
-            output, pa_loss, pi_loss, lo_loss = self.d_net(image)
+            output, pa_loss, pi_loss = self.d_net(image)
             loss_seg = self.criterion(output, target)
-            loss = loss_seg + pa_loss + pi_loss + lo_loss
+            loss = loss_seg + pa_loss + pi_loss
             
             loss.backward()
             optimizer.step()
@@ -259,13 +259,11 @@ def main():
                         help='skip validation during training')
     
     #loss options
-    parser.add_argument('--pi_lambda', type=int, default=None,
+    parser.add_argument('--pi_lambda', type=float, default=None,
                         help='coefficient for pixelwise loss (default: 100)')
-    parser.add_argument('--pa_lambda', type=int, default=None,
+    parser.add_argument('--pa_lambda', type=float, default=None,
                         help='coefficient for pairwise loss (default: 1)')    
-    parser.add_argument('--lo_lambda', type=int, default=None,
-                        help='coefficient for logits loss (default: 1)')
-    
+   
     parser.add_argument('--teacher_path', type=str, default='/kaggle/working/checkpoint.pth.tar',
                         help='path to the pretrained teache')
 
