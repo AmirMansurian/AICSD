@@ -3,27 +3,6 @@ import os
 import numpy as np
 from tqdm import tqdm
 
-import warnings
-warnings.filterwarnings('ignore')
-warnings.simplefilter('ignore')
-import torch
-import torch.functional as F
-import numpy as np
-import requests
-import torchvision
-from PIL import Image
-from pytorch_grad_cam.utils.image import show_cam_on_image, preprocess_image
-from pytorch_grad_cam import GradCAM
-
-import wandb
-
-
-
-
-
-
-
-
 from mypath import Path
 from dataloaders import make_data_loader
 from modeling.sync_batchnorm.replicate import patch_replication_callback
@@ -34,6 +13,8 @@ from utils.lr_scheduler import LR_Scheduler
 from utils.saver import Saver
 # from utils.summaries import TensorboardSummary
 from utils.metrics import Evaluator
+import wandb
+
 
 class Trainer(object):
     def __init__(self, args):
@@ -74,7 +55,6 @@ class Trainer(object):
             weight = None
         self.criterion = SegmentationLosses(weight=weight, cuda=args.cuda).build_loss(mode=args.loss_type)
         self.model, self.optimizer = model, optimizer
-        self.target_layer = model.aspp.conv1
         
         # Define Evaluator
         self.evaluator = Evaluator(self.nclass)
@@ -120,7 +100,6 @@ class Trainer(object):
                 image, target = image.cuda(), target.cuda()
             self.scheduler(self.optimizer, i, epoch, self.best_pred)
             self.optimizer.zero_grad()
-            
             output = self.model(image)
             loss = self.criterion(output, target)
             loss.backward()
@@ -256,6 +235,7 @@ def main():
                         help='evaluuation interval (default: 1)')
     parser.add_argument('--no-val', action='store_true', default=False,
                         help='skip validation during training')
+
     parser.add_argument('--wandb_name', type=str, default=None,
                         help='set wandb log name')
 
@@ -267,16 +247,15 @@ def main():
         except ValueError:
             raise ValueError('Argument --gpu_ids must be a comma-separated list of integers only')
 
-
     wandb.init(project="Knowledge Distillation", name=args.wandb_name,
       config={
       "learning_rate": 0.007,
       "architecture": "DeepLab",
       "dataset": "PascalVoc 2012",
-      "epochs": args.epo,
+      "epochs": args.epochs,
       })
 
-
+      
     # default settings for epochs, batch_size and lr
     if args.epochs is None:
         epoches = {
@@ -314,6 +293,6 @@ def main():
             trainer.validation(epoch)
 
     wandb.finish()
-    
+
 if __name__ == "__main__":
    main()
