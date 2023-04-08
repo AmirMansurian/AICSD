@@ -269,6 +269,9 @@ def main():
     parser.add_argument('--teacher_path', type=str, default='/kaggle/working/checkpoint.pth.tar',
                         help='path to the pretrained teache')
 
+    parser.add_argument('--wandb_name', type=str, default=None,
+                        help='set wandb log name')
+
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     if args.cuda:
@@ -279,15 +282,14 @@ def main():
             
             
      
-    wandb.init(project="Knowledge Distillation", name="feature maps",
+    wandb.init(project="Knowledge Distillation", name=args.wandb_name,
       config={
       "learning_rate": 0.007,
       "architecture": "DeepLab",
       "dataset": "PascalVoc 2012",
-      "epochs": 50,
+      "epochs": args.epochs,
       })
-    
-    
+     
     
 
     # default settings for epochs, batch_size and lr

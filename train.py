@@ -3,13 +3,6 @@ import os
 import numpy as np
 from tqdm import tqdm
 
-
-
-
-
-
-
-
 import warnings
 warnings.filterwarnings('ignore')
 warnings.simplefilter('ignore')
@@ -21,6 +14,8 @@ import torchvision
 from PIL import Image
 from pytorch_grad_cam.utils.image import show_cam_on_image, preprocess_image
 from pytorch_grad_cam import GradCAM
+
+import wandb
 
 
 
@@ -135,6 +130,7 @@ class Trainer(object):
 
         print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
         print('Loss: %.3f' % train_loss)
+        wandb.log({"train loss": train_loss})
 
         if self.args.no_val:
             # save checkpoint every epoch
@@ -176,6 +172,7 @@ class Trainer(object):
         print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
         print("Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(Acc, Acc_class, mIoU, FWIoU))
         print('Loss: %.3f' % test_loss)
+        wandb.log({"test loss": test_loss, "mIOU": mIoU})
 
         new_pred = mIoU
         if new_pred > self.best_pred:
@@ -259,6 +256,8 @@ def main():
                         help='evaluuation interval (default: 1)')
     parser.add_argument('--no-val', action='store_true', default=False,
                         help='skip validation during training')
+    parser.add_argument('--wandb_name', type=str, default=None,
+                        help='set wandb log name')
 
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -267,6 +266,16 @@ def main():
             args.gpu_ids = [int(s) for s in args.gpu_ids.split(',')]
         except ValueError:
             raise ValueError('Argument --gpu_ids must be a comma-separated list of integers only')
+
+
+    wandb.init(project="Knowledge Distillation", name=args.wandb_name,
+      config={
+      "learning_rate": 0.007,
+      "architecture": "DeepLab",
+      "dataset": "PascalVoc 2012",
+      "epochs": args.epo,
+      })
+
 
     # default settings for epochs, batch_size and lr
     if args.epochs is None:
@@ -304,5 +313,7 @@ def main():
         if not trainer.args.no_val and epoch % args.eval_interval == (args.eval_interval - 1):
             trainer.validation(epoch)
 
+    wandb.finish()
+    
 if __name__ == "__main__":
    main()
