@@ -15,7 +15,7 @@ class VOCSegmentation(Dataset):
 
     def __init__(self,
                  args,
-                 base_dir=Path.db_root_dir('pascal'),
+                 base_dir=Path.db_root_dir('pascal',args.dataset_path),
                  split='train',
                  ):
         """
