@@ -77,7 +77,7 @@ class Trainer(object):
             if os.path.isfile(classes_weights_path):
                 weight = np.load(classes_weights_path)
             else:
-                weight = calculate_weigths_labels(args.dataset, self.train_loader, self.nclass)
+                weight = calculate_weigths_labels(args.dataset,args.dataset_path, self.train_loader, self.nclass)
             weight = torch.from_numpy(weight.astype(np.float32))
         else:
             weight = None
@@ -196,6 +196,8 @@ def main():
     parser.add_argument('--dataset', type=str, default='pascal',
                         choices=['pascal', 'coco', 'cityscapes'],
                         help='dataset name (default: pascal)')
+    parser.add_argument('--dataset_path', type=str, default=None,
+                        help='dataset path')
     parser.add_argument('--use-sbd', action='store_true', default=False,
                         help='whether to use SBD dataset (default: False)')
     parser.add_argument('--workers', type=int, default=4,
