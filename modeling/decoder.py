@@ -19,6 +19,7 @@ class Decoder(nn.Module):
             raise NotImplementedError
 
         self.conv1 = nn.Conv2d(low_level_inplanes, 48, 1, bias=False)
+        self.conv2 = nn.Conv2d(256, 21, kernel_size=(3,3), stride=1, padding=1, bias=False)
         self.bn1 = BatchNorm(48)
         self.relu = nn.ReLU()
         self.last_conv = nn.Sequential(nn.Conv2d(304, 256, kernel_size=3, stride=1, padding=1, bias=False),
@@ -59,9 +60,10 @@ class Decoder(nn.Module):
         x = torch.cat((x, low_level_feat), dim=1)
         x = self.last_conv[0:6](x)
         feat1 = x
+        feat2 = self.conv2(self.last_conv[0:7](x))
         x = self.last_conv[6:](x)
 
-        return [feat1], x
+        return [feat1, feat2], x
 
     def _init_weight(self):
         for m in self.modules():
