@@ -140,10 +140,39 @@ class Distiller(nn.Module):
 
         fsp_loss = 0 
         if self.args.fsp_lambda is not None: # pairwise loss
+          bot_t, top_t = t_feats[4], t_feats[5]
+          bot_s, top_s = s_feats[4], s_feats[5]
 
-          s_fsp = compute_fsp(t_feats , 4)
-          t_fsp = compute_fsp(s_feats , 4)
-          fsp_loss = self.args.fsp_lambda * [compute_fsp_loss(s, t) for s, t in zip(s_fsp, t_fsp)]
+          b_H_t, t_H_t = bot_t.shape[2], top_t.shape[2]
+          b_H_s, t_H_s = bot_s.shape[2], top_s.shape[2]
+
+          if b_H_t > t_H_t:
+              bot_t = F.adaptive_avg_pool2d(bot_t, (t_H_t, t_H_t))
+          elif b_H_t < t_H_t:
+              top_t = F.adaptive_avg_pool2d(top_t, (b_H_t, b_H_t))
+          
+          if b_H_s > t_H_s:
+              bot_s = F.adaptive_avg_pool2d(bot_s, (t_H_s, t_H_s))
+          elif b_H_s < t_H_s:
+              top_s = F.adaptive_avg_pool2d(top_s, (b_H_s, b_H_s))
+
+          bot_t = bot_t.unsqueeze(1)
+          top_t = top_t.unsqueeze(2)
+          bot_s = bot_s.unsqueeze(1)
+          top_s = top_s.unsqueeze(2)
+
+          bot_t = bot_t.view(bot_t.shape[0], bot_t.shape[1], bot_t.shape[2], -1)
+          top_t = top_t.view(top_t.shape[0], top_t.shape[1], top_t.shape[2], -1)
+          bot_s = bot_s.view(bot_s.shape[0], bot_s.shape[1], bot_s.shape[2], -1)
+          top_s = top_s.view(top_s.shape[0], top_s.shape[1], top_s.shape[2], -1)
+
+          fsp_t = (bot_t * top_t).mean(-1)
+          fsp_s = (bot_s * top_s).mean(-1)
+
+          fsp_loss =  self.args.fsp_lambda * (fsp_s - fsp_t).pow(2).mean()
+        #   print('fsp_loss: ' , fsp_loss)
+        #   print(xx)
+          # fsp_loss = self.args.fsp_lambda * [compute_fsp_loss(s, t) for s, t in zip(s_fsp, t_fsp)]
           
    
 
