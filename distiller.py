@@ -61,6 +61,28 @@ def get_margin_from_BN(bn):
 
     return torch.FloatTensor(margin).to(std.device)
 
+def compute_fsp(g , f_size):
+        fsp_list = []
+        for i in range(f_size):
+            bot, top = g[i], g[i + 1]
+            b_H, t_H = bot.shape[2], top.shape[2]
+            if b_H > t_H:
+                bot = F.adaptive_avg_pool2d(bot, (t_H, t_H))
+            elif b_H < t_H:
+                top = F.adaptive_avg_pool2d(top, (b_H, b_H))
+            else:
+                pass
+            bot = bot.unsqueeze(1)
+            top = top.unsqueeze(2)
+            bot = bot.view(bot.shape[0], bot.shape[1], bot.shape[2], -1)
+            top = top.view(top.shape[0], top.shape[1], top.shape[2], -1)
+
+            fsp = (bot * top).mean(-1)
+            fsp_list.append(fsp)
+        return fsp_list
+
+def compute_fsp_loss(s, t):
+        return (s - t).pow(2).mean()
 
 class Distiller(nn.Module):
     def __init__(self, t_net, s_net, args):
@@ -114,7 +136,15 @@ class Distiller(nn.Module):
           G_t = torch.nn.functional.normalize(G_t)
 
           G_diff = G_t - G_s
-          sp_loss = self.args.sp_lambda * (G_diff * G_diff).view(-1, 1).sum(0) / (bsz * bsz)         
+          sp_loss = self.args.sp_lambda * (G_diff * G_diff).view(-1, 1).sum(0) / (bsz * bsz)    
+
+        fsp_loss = 0 
+        if self.args.fsp_lambda is not None: # pairwise loss
+
+          s_fsp = compute_fsp(t_feats , 4)
+          t_fsp = compute_fsp(s_feats , 4)
+          fsp_loss = self.args.fsp_lambda * [compute_fsp_loss(s, t) for s, t in zip(s_fsp, t_fsp)]
+          
    
 
         pi_loss = 0
@@ -162,6 +192,5 @@ class Distiller(nn.Module):
           ICCT = torch.nn.functional.normalize(ICCT, dim = 1)
           lo_loss =  self.args.lo_lambda * (ICCS - ICCT).pow(2).mean()/b 
         
-        kd_loss = pa_loss + pi_loss + ic_loss + lo_loss + sp_loss
-
+        kd_loss = pa_loss + pi_loss + ic_loss + lo_loss + sp_loss + fsp_loss
         return s_out, kd_loss

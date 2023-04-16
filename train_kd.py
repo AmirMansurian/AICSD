@@ -271,6 +271,8 @@ def main():
                         help='coefficient for inter class loss')
     parser.add_argument('--sp_lambda', type=float, default=None,
                         help='coefficient for feature similarity loss')
+    parser.add_argument('--fsp_lambda', type=float, default=None,
+                        help='coefficient for a gift loss')
     
     parser.add_argument('--teacher_path', type=str, default='/kaggle/working/checkpoint.pth.tar',
                         help='path to the pretrained teache')
