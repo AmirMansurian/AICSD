@@ -114,8 +114,7 @@ class Distiller(nn.Module):
           G_t = torch.nn.functional.normalize(G_t)
 
           G_diff = G_t - G_s
-          sp_loss = self.args.sp_lambda * (G_diff * G_diff).view(-1, 1).sum(0) / (bsz * bsz)
-          return sp_loss
+          sp_loss = self.args.sp_lambda * (G_diff * G_diff).view(-1, 1).sum(0) / (bsz * bsz)         
    
 
         pi_loss = 0
