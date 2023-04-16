@@ -98,6 +98,24 @@ class Distiller(nn.Module):
           patch_w, patch_h = int(total_w*self.scale), int(total_h*self.scale)
           maxpool = nn.MaxPool2d(kernel_size=(patch_w, patch_h), stride=(patch_w, patch_h), padding=0, ceil_mode=True) # change
           pa_loss = self.args.pa_lambda * self.criterion(maxpool(feat_S), maxpool(feat_T))
+
+        sp_loss = 0 
+        if self.args.sp_lambda is not None: # pairwise loss
+          feat_T = t_feats[4]
+          feat_S = s_feats[4]
+
+          bsz = feat_S.shape[0]
+          feat_S = feat_S.view(bsz, -1)
+          feat_T = feat_T.view(bsz, -1)
+          
+          G_s = torch.mm(feat_S, torch.t(feat_S))        
+          G_s = torch.nn.functional.normalize(G_s)
+          G_t = torch.mm(feat_T, torch.t(feat_T))
+          G_t = torch.nn.functional.normalize(G_t)
+
+          G_diff = G_t - G_s
+          sp_loss = self.args.sp_lambda * (G_diff * G_diff).view(-1, 1).sum(0) / (bsz * bsz)
+          return sp_loss
    
 
         pi_loss = 0
@@ -145,6 +163,6 @@ class Distiller(nn.Module):
           ICCT = torch.nn.functional.normalize(ICCT, dim = 1)
           lo_loss =  self.args.lo_lambda * (ICCS - ICCT).pow(2).mean()/b 
         
-        kd_loss = pa_loss + pi_loss + ic_loss + lo_loss
+        kd_loss = pa_loss + pi_loss + ic_loss + lo_loss + sp_loss
 
         return s_out, kd_loss
