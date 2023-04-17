@@ -169,9 +169,11 @@ class Distiller(nn.Module):
           fsp_t = (bot_t * top_t).mean(-1)
           fsp_s = (bot_s * top_s).mean(-1)
 
+
+          fsp_t = torch.nn.functional.normalize(fsp_t)
+          fsp_s = torch.nn.functional.normalize(fsp_s)
+
           fsp_loss =  self.args.fsp_lambda * (fsp_s - fsp_t).pow(2).mean()
-        #   print('fsp_loss: ' , fsp_loss)
-        #   print(xx)
           # fsp_loss = self.args.fsp_lambda * [compute_fsp_loss(s, t) for s, t in zip(s_fsp, t_fsp)]
           
    
