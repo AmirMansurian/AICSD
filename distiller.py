@@ -63,7 +63,7 @@ def get_margin_from_BN(bn):
 
 def compute_fsp(g , f_size):
         fsp_list = []
-        for i in range(f_size):
+        for i in range(f_size-1):
             bot, top = g[i], g[i + 1]
             b_H, t_H = bot.shape[2], top.shape[2]
             if b_H > t_H:
@@ -72,17 +72,16 @@ def compute_fsp(g , f_size):
                 top = F.adaptive_avg_pool2d(top, (b_H, b_H))
             else:
                 pass
+
             bot = bot.unsqueeze(1)
             top = top.unsqueeze(2)
+
             bot = bot.view(bot.shape[0], bot.shape[1], bot.shape[2], -1)
             top = top.view(top.shape[0], top.shape[1], top.shape[2], -1)
 
             fsp = (bot * top).mean(-1)
             fsp_list.append(fsp)
         return fsp_list
-
-def compute_fsp_loss(s, t):
-        return (s - t).pow(2).mean()
 
 class Distiller(nn.Module):
     def __init__(self, t_net, s_net, args):
@@ -140,41 +139,24 @@ class Distiller(nn.Module):
 
         fsp_loss = 0 
         if self.args.fsp_lambda is not None: # pairwise loss
-          bot_t, top_t = t_feats[4], t_feats[5]
-          bot_s, top_s = s_feats[4], s_feats[5]
+          num_layers = len(t_feats)   
+          new_num_channels = t_out.shape[1]
 
-          b_H_t, t_H_t = bot_t.shape[2], top_t.shape[2]
-          b_H_s, t_H_s = bot_s.shape[2], top_s.shape[2]
+          for layer_idx in range(num_layers):
+            in_channels_t = t_feats[layer_idx].shape[1]
+            in_channels_s = s_feats[layer_idx].shape[1]
 
-          if b_H_t > t_H_t:
-              bot_t = F.adaptive_avg_pool2d(bot_t, (t_H_t, t_H_t))
-          elif b_H_t < t_H_t:
-              top_t = F.adaptive_avg_pool2d(top_t, (b_H_t, b_H_t))
-          
-          if b_H_s > t_H_s:
-              bot_s = F.adaptive_avg_pool2d(bot_s, (t_H_s, t_H_s))
-          elif b_H_s < t_H_s:
-              top_s = F.adaptive_avg_pool2d(top_s, (b_H_s, b_H_s))
+            teacher_layer = nn.Conv2d(in_channels=in_channels_t, out_channels=new_num_channels, kernel_size=1).cuda()
+            student_layer = nn.Conv2d(in_channels=in_channels_s, out_channels=new_num_channels, kernel_size=1).cuda() 
 
-          bot_t = bot_t.unsqueeze(1)
-          top_t = top_t.unsqueeze(2)
-          bot_s = bot_s.unsqueeze(1)
-          top_s = top_s.unsqueeze(2)
+            t_feats[layer_idx] = teacher_layer(t_feats[layer_idx])
+            s_feats[layer_idx] = student_layer(s_feats[layer_idx])
 
-          bot_t = bot_t.view(bot_t.shape[0], bot_t.shape[1], bot_t.shape[2], -1)
-          top_t = top_t.view(top_t.shape[0], top_t.shape[1], top_t.shape[2], -1)
-          bot_s = bot_s.view(bot_s.shape[0], bot_s.shape[1], bot_s.shape[2], -1)
-          top_s = top_s.view(top_s.shape[0], top_s.shape[1], top_s.shape[2], -1)
+          fsp_t_list = compute_fsp(t_feats , len(t_feats))
+          fsp_s_list = compute_fsp(s_feats , len(s_feats))
 
-          fsp_t = (bot_t * top_t).mean(-1)
-          fsp_s = (bot_s * top_s).mean(-1)
-
-
-          fsp_t = torch.nn.functional.normalize(fsp_t)
-          fsp_s = torch.nn.functional.normalize(fsp_s)
-
-          fsp_loss =  self.args.fsp_lambda * (fsp_s - fsp_t).pow(2).mean()
-          # fsp_loss = self.args.fsp_lambda * [compute_fsp_loss(s, t) for s, t in zip(s_fsp, t_fsp)]
+          loss_group = ([compute_fsp_loss(s, t) for s, t in zip(fsp_s_list, fsp_t_list)])
+          fsp_loss =  self.args.fsp_lambda * sum(loss_group)
           
    
 
