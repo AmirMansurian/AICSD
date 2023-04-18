@@ -82,6 +82,9 @@ def compute_fsp(g , f_size):
             fsp = (bot * top).mean(-1)
             fsp_list.append(fsp)
         return fsp_list
+        
+def compute_fsp_loss(s, t):
+        return (s - t).pow(2).mean()
 
 class Distiller(nn.Module):
     def __init__(self, t_net, s_net, args):
