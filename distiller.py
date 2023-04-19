@@ -73,14 +73,19 @@ def compute_fsp(g , f_size):
             else:
                 pass
 
-            bot = bot.unsqueeze(1)
-            top = top.unsqueeze(2)
+            # bot = bot.unsqueeze(1)
+            # top = top.unsqueeze(2)
 
-            bot = bot.view(bot.shape[0], bot.shape[1], bot.shape[2], -1)
-            top = top.view(top.shape[0], top.shape[1], top.shape[2], -1)
+            bot = bot.view(bot.shape[0], bot.shape[1], -1)
+            top = top.view(top.shape[0], top.shape[1], -1)
+
+            bot = torch.nn.functional.normalize(bot , dim = -1)
+            top = torch.nn.functional.normalize(top , dim = -1)
 
             fsp = (bot * top).mean(-1)
+
             fsp_list.append(fsp)
+            
         return fsp_list
         
 def compute_fsp_loss(s, t):
