@@ -73,19 +73,16 @@ def compute_fsp(g , f_size):
             else:
                 pass
 
-            # bot = bot.unsqueeze(1)
-            # top = top.unsqueeze(2)
-
             bot = bot.view(bot.shape[0], bot.shape[1], -1)
             top = top.view(top.shape[0], top.shape[1], -1)
 
-            bot = torch.nn.functional.normalize(bot , dim = -1)
-            top = torch.nn.functional.normalize(top , dim = -1)
-
+            bot = bot.unsqueeze(1)
+            top = top.unsqueeze(2)
+            
             fsp = (bot * top).mean(-1)
 
             fsp_list.append(fsp)
-            
+
         return fsp_list
         
 def compute_fsp_loss(s, t):
@@ -147,13 +144,13 @@ class Distiller(nn.Module):
 
         fsp_loss = 0 
         if self.args.fsp_lambda is not None: # pairwise loss
+
           num_layers = len(t_feats)   
-          new_num_channels = t_out.shape[1]
+          new_num_channels = 70 #t_out.shape[1]
 
           for layer_idx in range(num_layers):
             in_channels_t = t_feats[layer_idx].shape[1]
             in_channels_s = s_feats[layer_idx].shape[1]
-
             teacher_layer = nn.Conv2d(in_channels=in_channels_t, out_channels=new_num_channels, kernel_size=1).cuda()
             student_layer = nn.Conv2d(in_channels=in_channels_s, out_channels=new_num_channels, kernel_size=1).cuda() 
 
@@ -164,7 +161,8 @@ class Distiller(nn.Module):
           fsp_s_list = compute_fsp(s_feats , len(s_feats))
 
           loss_group = ([compute_fsp_loss(s, t) for s, t in zip(fsp_s_list, fsp_t_list)])
-          fsp_loss =  self.args.fsp_lambda * sum(loss_group)
+          loss = sum(loss_group)
+          fsp_loss =  self.args.fsp_lambda * loss
           
    
 
