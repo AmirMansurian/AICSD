@@ -298,7 +298,7 @@ def main():
       "epochs": args.epochs,
       })
      
-    
+    print('running FSP paper version')
 
     # default settings for epochs, batch_size and lr
     if args.epochs is None:
