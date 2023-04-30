@@ -5,6 +5,7 @@ from scipy.stats import norm
 import scipy
 import numpy as np
 import math
+import itertools
 
 
 def L2(f_):
@@ -61,29 +62,30 @@ def get_margin_from_BN(bn):
 
     return torch.FloatTensor(margin).to(std.device)
 
-def compute_fsp(g , f_size):
+def compute_fsp(g , pm):
         fsp_list = []
-        for i in range(f_size-1):
-            bot, top = g[i], g[i + 1]
-            b_H, t_H = bot.shape[2], top.shape[2]
-            if b_H > t_H:
-                bot = F.adaptive_avg_pool2d(bot, (t_H, t_H))
-            elif b_H < t_H:
-                top = F.adaptive_avg_pool2d(top, (b_H, b_H))
-            else:
-                pass
-
-            bot = bot.view(bot.shape[0], bot.shape[1], -1)
-            top = top.view(top.shape[0], top.shape[1], -1)
-
-            bot = bot.unsqueeze(1)
-            top = top.unsqueeze(2)
-            
-            fsp = (bot * top).mean(-1)
-
-            fsp_list.append(fsp)
-
+        for pair in itertools.permutations(g, pm):
+          fsp_list.append(compute_fsp_att(*pair))     
         return fsp_list
+
+def compute_fsp_att(bot, top):
+  b_H, t_H = bot.shape[2], top.shape[2]
+  if b_H > t_H:
+      bot = F.adaptive_avg_pool2d(bot, (t_H, t_H))
+  elif b_H < t_H:
+      top = F.adaptive_avg_pool2d(top, (b_H, b_H))
+  else:
+      pass
+
+  bot = bot.view(bot.shape[0], bot.shape[1], -1)
+  top = top.view(top.shape[0], top.shape[1], -1)
+
+  bot = bot.unsqueeze(1)
+  top = top.unsqueeze(2)
+  
+  fsp = (bot * top).mean(-1)
+
+  return fsp
         
 def compute_fsp_loss(s, t):
         return (s - t).pow(2).mean()
@@ -127,26 +129,35 @@ class Distiller(nn.Module):
 
         sp_loss = 0 
         if self.args.sp_lambda is not None: # pairwise loss
-          feat_T = t_feats[4]
-          feat_S = s_feats[4]
+          # feat_T = t_feats[4] #org
+          # feat_S = s_feats[4] #org
+          loss_group = []
+          for i in range (len(t_feats)):
+            feat_T = t_feats[i]
+            feat_S = s_feats[i]
 
-          bsz = feat_S.shape[0]
-          feat_S = feat_S.view(bsz, -1)
-          feat_T = feat_T.view(bsz, -1)
-          
-          G_s = torch.mm(feat_S, torch.t(feat_S))        
-          G_s = torch.nn.functional.normalize(G_s)
-          G_t = torch.mm(feat_T, torch.t(feat_T))
-          G_t = torch.nn.functional.normalize(G_t)
+            bsz = feat_S.shape[0]
+            feat_S = feat_S.view(bsz, -1)
+            feat_T = feat_T.view(bsz, -1)
+            
+            G_s = torch.mm(feat_S, torch.t(feat_S))        
+            G_s = torch.nn.functional.normalize(G_s) #org
+            G_t = torch.mm(feat_T, torch.t(feat_T))
+            G_t = torch.nn.functional.normalize(G_t) #org
 
-          G_diff = G_t - G_s
-          sp_loss = self.args.sp_lambda * (G_diff * G_diff).view(-1, 1).sum(0) / (bsz * bsz)    
+            G_diff = G_t - G_s
+            g_loss = (G_diff * G_diff).view(-1, 1).sum(0) / (bsz * bsz)    
+            print("g_loss " , i, " : " , g_loss)
+            loss_group.append(g_loss)
+          loss = sum(loss_group)
+          sp_loss = self.args.sp_lambda * loss
 
         fsp_loss = 0 
         if self.args.fsp_lambda is not None: # pairwise loss
 
           num_layers = len(t_feats)   
-          new_num_channels = 70 #t_out.shape[1]
+          new_num_channels = t_out.shape[1]
+          permutationC = 2
 
           for layer_idx in range(num_layers):
             in_channels_t = t_feats[layer_idx].shape[1]
@@ -157,8 +168,8 @@ class Distiller(nn.Module):
             t_feats[layer_idx] = teacher_layer(t_feats[layer_idx])
             s_feats[layer_idx] = student_layer(s_feats[layer_idx])
 
-          fsp_t_list = compute_fsp(t_feats , len(t_feats))
-          fsp_s_list = compute_fsp(s_feats , len(s_feats))
+          fsp_t_list = compute_fsp(t_feats , permutationC)
+          fsp_s_list = compute_fsp(s_feats , permutationC)
 
           loss_group = ([compute_fsp_loss(s, t) for s, t in zip(fsp_s_list, fsp_t_list)])
           loss = sum(loss_group)
