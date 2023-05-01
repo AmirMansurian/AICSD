@@ -271,6 +271,8 @@ def main():
                         help='coefficient for inter class loss')
     parser.add_argument('--sp_lambda', type=float, default=None,
                         help='coefficient for feature similarity loss')
+    parser.add_argument('--sp_option', type=int, default=None,
+                        help='chossing which layer to apply SP on, L=[0:5] , L=6 mean get the sum of all layers')
     parser.add_argument('--fsp_lambda', type=float, default=None,
                         help='coefficient for a gift loss')
     
