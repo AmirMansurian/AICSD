@@ -131,8 +131,8 @@ class Distiller(nn.Module):
         if self.args.sp_lambda is not None: # pairwise loss
           # feat_T = t_feats[4] #org
           # feat_S = s_feats[4] #org
-          if self.sp_option is not None:
-            if self.sp_option = 6:
+          if self.args.sp_option is not None:
+            if self.args.sp_option == 6:
               loss_group = []
               for i in range (len(t_feats)):
                 feat_T = t_feats[i]
@@ -151,9 +151,9 @@ class Distiller(nn.Module):
                 g_loss = (G_diff * G_diff).view(-1, 1).sum(0) / (bsz * bsz)   
                 loss_group.append(g_loss)
               loss = sum(loss_group)
-            elif self.sp_option < 6:
-              feat_T = t_feats[self.sp_option]
-              feat_S = s_feats[self.sp_option]
+            elif self.args.sp_option < 6:
+              feat_T = t_feats[self.args.sp_option]
+              feat_S = s_feats[self.args.sp_option]
 
               bsz = feat_S.shape[0]
               feat_S = feat_S.view(bsz, -1)
@@ -165,7 +165,7 @@ class Distiller(nn.Module):
               G_t = torch.nn.functional.normalize(G_t) #org
 
               G_diff = G_t - G_s
-              g_loss = (G_diff * G_diff).view(-1, 1).sum(0) / (bsz * bsz)       
+              loss = (G_diff * G_diff).view(-1, 1).sum(0) / (bsz * bsz)       
           
           sp_loss = self.args.sp_lambda * loss
 
