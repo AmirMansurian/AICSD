@@ -5,6 +5,7 @@ from scipy.stats import norm
 import scipy
 import numpy as np
 import math
+import itertools
 
 
 def L2(f_):
@@ -61,6 +62,33 @@ def get_margin_from_BN(bn):
 
     return torch.FloatTensor(margin).to(std.device)
 
+def compute_fsp(g , pm):
+        fsp_list = []
+        for pair in itertools.permutations(g, pm):
+          fsp_list.append(compute_fsp_att(*pair))     
+        return fsp_list
+
+def compute_fsp_att(bot, top):
+  b_H, t_H = bot.shape[2], top.shape[2]
+  if b_H > t_H:
+      bot = F.adaptive_avg_pool2d(bot, (t_H, t_H))
+  elif b_H < t_H:
+      top = F.adaptive_avg_pool2d(top, (b_H, b_H))
+  else:
+      pass
+
+  bot = bot.view(bot.shape[0], bot.shape[1], -1)
+  top = top.view(top.shape[0], top.shape[1], -1)
+
+  bot = bot.unsqueeze(1)
+  top = top.unsqueeze(2)
+  
+  fsp = (bot * top).mean(-1)
+
+  return fsp
+        
+def compute_fsp_loss(s, t):
+        return (s - t).pow(2).mean()
 
 class Distiller(nn.Module):
     def __init__(self, t_net, s_net, args):
@@ -98,6 +126,72 @@ class Distiller(nn.Module):
           patch_w, patch_h = int(total_w*self.scale), int(total_h*self.scale)
           maxpool = nn.MaxPool2d(kernel_size=(patch_w, patch_h), stride=(patch_w, patch_h), padding=0, ceil_mode=True) # change
           pa_loss = self.args.pa_lambda * self.criterion(maxpool(feat_S), maxpool(feat_T))
+
+        sp_loss = 0 
+        if self.args.sp_lambda is not None: # pairwise loss
+          # feat_T = t_feats[4] #org
+          # feat_S = s_feats[4] #org
+          if self.args.sp_option is not None:
+            if self.args.sp_option == 6:
+              loss_group = []
+              for i in range (len(t_feats)):
+                feat_T = t_feats[i]
+                feat_S = s_feats[i]
+
+                bsz = feat_S.shape[0]
+                feat_S = feat_S.view(bsz, -1)
+                feat_T = feat_T.view(bsz, -1)
+                
+                G_s = torch.mm(feat_S, torch.t(feat_S))        
+                G_s = torch.nn.functional.normalize(G_s) #org
+                G_t = torch.mm(feat_T, torch.t(feat_T))
+                G_t = torch.nn.functional.normalize(G_t) #org
+
+                G_diff = G_t - G_s
+                g_loss = (G_diff * G_diff).view(-1, 1).sum(0) / (bsz * bsz)   
+                loss_group.append(g_loss)
+              loss = sum(loss_group)
+            elif self.args.sp_option < 6:
+              feat_T = t_feats[self.args.sp_option]
+              feat_S = s_feats[self.args.sp_option]
+
+              bsz = feat_S.shape[0]
+              feat_S = feat_S.view(bsz, -1)
+              feat_T = feat_T.view(bsz, -1)
+              
+              G_s = torch.mm(feat_S, torch.t(feat_S))        
+              G_s = torch.nn.functional.normalize(G_s) #org
+              G_t = torch.mm(feat_T, torch.t(feat_T))
+              G_t = torch.nn.functional.normalize(G_t) #org
+
+              G_diff = G_t - G_s
+              loss = (G_diff * G_diff).view(-1, 1).sum(0) / (bsz * bsz)       
+          
+          sp_loss = self.args.sp_lambda * loss
+
+        fsp_loss = 0 
+        if self.args.fsp_lambda is not None: # pairwise loss
+
+          num_layers = len(t_feats)   
+          new_num_channels = t_out.shape[1]
+          permutationC = 2
+
+          for layer_idx in range(num_layers):
+            in_channels_t = t_feats[layer_idx].shape[1]
+            in_channels_s = s_feats[layer_idx].shape[1]
+            teacher_layer = nn.Conv2d(in_channels=in_channels_t, out_channels=new_num_channels, kernel_size=1).cuda()
+            student_layer = nn.Conv2d(in_channels=in_channels_s, out_channels=new_num_channels, kernel_size=1).cuda() 
+
+            t_feats[layer_idx] = teacher_layer(t_feats[layer_idx])
+            s_feats[layer_idx] = student_layer(s_feats[layer_idx])
+
+          fsp_t_list = compute_fsp(t_feats , permutationC)
+          fsp_s_list = compute_fsp(s_feats , permutationC)
+
+          loss_group = ([compute_fsp_loss(s, t) for s, t in zip(fsp_s_list, fsp_t_list)])
+          loss = sum(loss_group)
+          fsp_loss =  self.args.fsp_lambda * loss
+          
    
 
         pi_loss = 0
@@ -128,11 +222,11 @@ class Distiller(nn.Module):
         if self.args.lo_lambda is not None: #logits loss
           #lo_loss =  self.args.lo_lambda * torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), F.softmax(t_out / self.temperature, dim=1))
           b, c, h, w = s_out.shape
-          s_logit = torch.reshape(s_out, (b, c, h*w))
-          t_logit = torch.reshape(t_out, (b, c, h*w))
+          s_logit_t = torch.reshape(s_out, (b, c, h*w))
+          t_logit_t = torch.reshape(t_out, (b, c, h*w))
 
-          s_logit = F.softmax(s_out / self.temperature, dim=2)
-          t_logit = F.softmax(t_out / self.temperature, dim=2)
+          s_logit = F.softmax(s_logit_t / self.temperature, dim=2)
+          t_logit = F.softmax(t_logit_t / self.temperature, dim=2)
           kl = torch.nn.KLDivLoss(reduction="batchmean")
           ICCS = torch.empty((21,21)).cuda()
           ICCT = torch.empty((21,21)).cuda()
@@ -145,6 +239,5 @@ class Distiller(nn.Module):
           ICCT = torch.nn.functional.normalize(ICCT, dim = 1)
           lo_loss =  self.args.lo_lambda * (ICCS - ICCT).pow(2).mean()/b 
         
-        kd_loss = pa_loss + pi_loss + ic_loss + lo_loss
-
+        kd_loss = pa_loss + pi_loss + ic_loss + lo_loss + sp_loss + fsp_loss
         return s_out, kd_loss

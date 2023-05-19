@@ -14,8 +14,7 @@ class SBDSegmentation(data.Dataset):
     NUM_CLASSES = 21
 
     def __init__(self,
-                 args,
-                 base_dir=Path.db_root_dir('sbd'),
+                 args,                 
                  split='train',
                  ):
         """
@@ -24,6 +23,7 @@ class SBDSegmentation(data.Dataset):
         :param transform: transform to apply
         """
         super().__init__()
+        base_dir=Path.db_root_dir('sbd',args.dataset_path),
         self._base_dir = base_dir
         self._dataset_dir = os.path.join(self._base_dir, 'dataset')
         self._image_dir = os.path.join(self._dataset_dir, 'img')

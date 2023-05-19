@@ -73,11 +73,11 @@ class Trainer(object):
         # Define Criterion
         # whether to use class balanced weights
         if args.use_balanced_weights:
-            classes_weights_path = os.path.join(Path.db_root_dir(args.dataset), args.dataset+'_classes_weights.npy')
+            classes_weights_path = os.path.join(Path.db_root_dir(args.dataset,args.dataset_path), args.dataset+'_classes_weights.npy')
             if os.path.isfile(classes_weights_path):
                 weight = np.load(classes_weights_path)
             else:
-                weight = calculate_weigths_labels(args.dataset, self.train_loader, self.nclass)
+                weight = calculate_weigths_labels(args.dataset,args.dataset_path, self.train_loader, self.nclass)
             weight = torch.from_numpy(weight.astype(np.float32))
         else:
             weight = None
@@ -196,6 +196,8 @@ def main():
     parser.add_argument('--dataset', type=str, default='pascal',
                         choices=['pascal', 'coco', 'cityscapes'],
                         help='dataset name (default: pascal)')
+    parser.add_argument('--dataset_path', type=str, default=None,
+                        help='dataset path')
     parser.add_argument('--use-sbd', action='store_true', default=False,
                         help='whether to use SBD dataset (default: False)')
     parser.add_argument('--workers', type=int, default=4,
@@ -267,9 +269,18 @@ def main():
                         help='coefficient for logits loss')
     parser.add_argument('--ic_lambda', type=float, default=None,
                         help='coefficient for inter class loss')
+    parser.add_argument('--sp_lambda', type=float, default=None,
+                        help='coefficient for feature similarity loss')
+    parser.add_argument('--sp_option', type=int, default=None,
+                        help='chossing which layer to apply SP on, L=[0:5] , L=6 mean get the sum of all layers')
+    parser.add_argument('--fsp_lambda', type=float, default=None,
+                        help='coefficient for a gift loss')
     
     parser.add_argument('--teacher_path', type=str, default='/kaggle/working/checkpoint.pth.tar',
                         help='path to the pretrained teache')
+
+    parser.add_argument('--wandb_name', type=str, default=None,
+                        help='set wandb log name')
 
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -281,16 +292,15 @@ def main():
             
             
      
-    wandb.init(project="Knowledge Deistillation", entity="ipl_runs", name="feature maps",
+    wandb.init(project="Knowledge Distillation", name=args.wandb_name,
       config={
       "learning_rate": 0.007,
       "architecture": "DeepLab",
       "dataset": "PascalVoc 2012",
-      "epochs": 120,
+      "epochs": args.epochs,
       })
-    
-    
-    
+     
+    print('running FSP paper version')
 
     # default settings for epochs, batch_size and lr
     if args.epochs is None:

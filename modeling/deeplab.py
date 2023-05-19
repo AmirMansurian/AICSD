@@ -81,17 +81,44 @@ class DeepLab(nn.Module):
     def extract_feature(self, input):
         feats, x, low_level_feat = self.backbone.extract_feature(input)
         feat, x = self.aspp.extract_feature(x)
+        dist_feats = feat
         feats += feat
         feat, x = self.decoder.extract_feature(x, low_level_feat)
         feats += feat
         x = F.interpolate(x, size=input.size()[2:], mode='bilinear', align_corners=True)
-        
 
-        #img = torch.sum((feats[5])[0], axis=0).cpu().detach().numpy()
-        #b = np.copy(img)
+       # for fet in feats : 
+        #  print(fet.shape)
+
+        #print('###################')
+
+        
+ 
+        #print(a.shape)
+        #b = np.reshape(input[0].cpu().detach().numpy(), (1, 2, 0))
+       # c = input[0].cpu().detach().numpy().transpose((1, 2, 0))
+        #print(x.shape)
+        #c = cv2.normalize(c,None,0,255,cv2.NORM_MINMAX)
+        #print(c.shape)
+       # print(input.shape)
+
+        
+       #print(torch.sum((feats[5])[0], axis=0)x.shape)
+        #a = F.interpolate(a, (513, 513), mode='bilinear', align_corners=True)
+       # img = torch.sum(a[0], axis=0).cpu().detach().numpy()
+       # out = x[0, 0].cpu().detach().numpy()
+       # print((out - img).shape)
+       # d = out - img
+       # d = cv2.normalize(d,None,0,255,cv2.NORM_MINMAX)
+        
+        #print(img.shape)
+        #img = x[0, 0].cpu().detach().numpy()
+       # b = np.copy(img)
         #cv2.normalize(img,b,0,255,cv2.NORM_MINMAX)
         #b = cv2.applyColorMap(np.uint8(b), cv2.COLORMAP_JET)
-        #cv2.imwrite('feature.jpeg', b)  
+       # cv2.imwrite('feature.jpeg', b) 
+        ##cv2.imwrite('input.jpeg', c) 
+        #cv2.imwrite('grad.jpeg', d)
 
         return feats, x
 

@@ -15,7 +15,6 @@ class VOCSegmentation(Dataset):
 
     def __init__(self,
                  args,
-                 base_dir=Path.db_root_dir('pascal'),
                  split='train',
                  ):
         """
@@ -24,7 +23,8 @@ class VOCSegmentation(Dataset):
         :param transform: transform to apply
         """
         super().__init__()
-        self._base_dir = '/kaggle/input/pascal-voc-2012/VOC2012'
+        base_dir=Path.db_root_dir('pascal',args.dataset_path)
+        self._base_dir = base_dir
         self._image_dir = os.path.join(self._base_dir, 'JPEGImages')
         self._cat_dir = os.path.join(self._base_dir, 'SegmentationClass')
 
@@ -41,7 +41,7 @@ class VOCSegmentation(Dataset):
         self.im_ids = []
         self.images = []
         self.categories = []
-        
+
         for splt in self.split:
             with open(os.path.join(os.path.join(_splits_dir, splt + '.txt')), "r") as f:
                 lines = f.read().splitlines()

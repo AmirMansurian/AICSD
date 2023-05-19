@@ -1,39 +1,75 @@
-## Knowledge Distillation in Semantic Segmentation 
- This is Implementation of [An Efficient Knowledge Distillation Architecture for Real-time Semantic Segmentation](https://drive.google.com/file/d/1wrWg54G1ex-8WRYVMGziWTapXFsFMEW0/view?usp=drivesdk) [(Slides)](https://docs.google.com/presentation/d/1n-05N4rn-_LZWJ5Lv6Tt9Ks8lSn2-cxsWmbkTWf27gk/edit?usp=sharing).
+## Segmentation - Pascal VOC
 
-### Method Diagram
-The architecture of both the teacher and student networks is Deeplab-V3 +, although their encoders are different. Teacher network is fixed the during the training process; only the student network will be trained with two distillation losses and cross-entropy loss. The pixel-wise distillation module uses the preReLU feature map of the last convolution layer of the decoder before probability scores to transfer detailed spatial information. The pair-wise distillation module uses the feature map of the last layer of the encoder to create a pair-wise similarity matrix and transfer global information.
+Our segmentation code is based on [pytorch-deeplab-xception](https://github.com/jfzhang95/pytorch-deeplab-xception).
 
-<img src="https://github.com/AmirMansurian/KD/blob/main/Images/KD.png"  width="700" height="500" />
+### Additional requirements
 
-### Experimental Results
-Results of each distillation method on the [PascalVoc 2012](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/) validation set with two different backbones. Results are average of 3 runs with different random seeds.
+- tqdm
+- matplotlib 
+- pillow
 
-<img src="https://github.com/AmirMansurian/KD/blob/main/Images/results.png"   width="700" height="300"/>
+### Settings
+
+|   Teacher  |  Student  | Teacher size | Student size | Size ratio |
+|:----------:|:---------:|:------------:|:------------:|:----------:|
+| ResNet 101 | ResNet 18 |    59.3M    |    16.6    |   28.0%   |
+| ResNet 101 | MobileNetV2 |    59.3M    |     5.8M    |   9.8%   |
 
 
-### Visualization
-Comparison of segmentation results between ground-truth, teacher prediction, student prediction and prediction after distillation.
-
-<img src="https://github.com/AmirMansurian/KD/blob/main/Images/experiments.png"   width="700" height="600"/>
-
-### How to run
-  ```shell
-  python train_kd.py --backbone resnet18 --dataset pascal  --pa_lambda 1 --pi_lambda 100 
-  ```
-
-### Teacher model
-Download following pre-trained teacher network and put it into ```pretrained/``` directory
+### Teacher models
+Download following pre-trained teacher network and put it into ```./Segmentation/pretrained``` directory
 - [ResNet101-DeepLabV3+](https://drive.google.com/open?id=1Pz2OT5KoSNvU5rc3w5d2R8_0OBkKSkLR)
 
- measure performance on **test** set with [Pascal VOC evaluation server](http://host.robots.ox.ac.uk/pascal/VOC/).
- 
- ## Citation
-If you use this repository for your research or wish to refer to our distillation method, please use the following BibTeX entry:
-```
-@article{
-}
-```
+We used pre-trained model in [pytorch-deeplab-xception](https://github.com/jfzhang95/pytorch-deeplab-xception) for teacher network.
 
-### Acknowledgement
-This codebase is heavily borrowed from [A Comprehensive Overhaul of Feature Distillation ](https://github.com/clovaai/overhaul-distillation) and [structure_knowledge_distillation](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=2ahUKEwiM3vjGyuD7AhXohf0HHcA4B44QFnoECDIQAQ&url=https%3A%2F%2Fgithub.com%2FirfanICMLL%2Fstructure_knowledge_distillation&usg=AOvVaw2rg7lYss4wqcvKKDH0UWoN). Thanks for their excellent works.
+### Training
+
+- First, move to segmentation folder : ```cd Segmentation```
+- Next, configure your dataset path on ```Segmentation/mypath.py```
+
+- Without distillation
+  - ResNet 18
+  ```shell script
+  CUDA_VISIBLE_DEVICES=0,1 python train.py --backbone resnet18 --gpu-ids 0,1 --dataset pascal --use-sbd --nesterov
+  ```
+  
+  - MobileNetV2
+  ```shell script
+  CUDA_VISIBLE_DEVICES=0,1 python train.py --backbone mobilenet --gpu-ids 0,1 --dataset pascal --use-sbd --nesterov
+  ````
+
+- Distillation
+  - ResNet 18
+  ```shell script
+  CUDA_VISIBLE_DEVICES=0,1 python train_with_distillation.py --backbone resnet18 --gpu-ids 0,1 --dataset pascal --use-sbd --nesterov
+  ```
+  
+  -MobileNetV2
+  ```shell script
+  CUDA_VISIBLE_DEVICES=0,1 python train_with_distillation.py --backbone mobilenet --gpu-ids 0,1 --dataset pascal --use-sbd --nesterov
+  ```
+
+### Experimental results
+
+This numbers are based validation performance of our code.
+
+- ResNet 18
+
+|   Network  |  Method  | mIOU |
+|:----------:|:--------:|:----------:|
+| ResNet 101 |  Teacher |    77.89   |
+| ResNet 18 | Original |    72.07   |
+| ResNet 18 | Proposed |    __73.98__   |
+
+- MobileNetV2
+
+|  Network  |  Method  |  mIOU |
+|:---------:|:--------:|:-----:|
+| ResNet 101 |  Teacher | 77.89 |
+| MobileNetV2 | Original | 68.46 |
+| MobileNetV2 | Proposed | __71.19__ |
+
+
+In the paper, we reported performance on the **test** set, but our code measures the performance on the **val** set.
+Therefore, the performance on code is not same as the paper.
+If you want accurate measure, please measure performance on **test** set with [Pascal VOC evaluation server](http://host.robots.ox.ac.uk/pascal/VOC/).

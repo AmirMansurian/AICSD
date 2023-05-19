@@ -3,9 +3,11 @@ import os
 class Path(object):
 
     @staticmethod
-    def db_root_dir(dataset):
+    def db_root_dir(dataset,dataset_path):
         if dataset == 'pascal':
-            return '../pascal-voc-2012/VOC2012/'  # folder that contains VOCdevkit/.
+            # return 'VOCdevkit/VOC2012/'  # folder that contains VOCdevkit/. //colab
+            # return '/kaggle/input/voc2012/'  # folder that contains VOCdevkit/. //kaggle
+            return dataset_path
         elif dataset == 'sbd':
             return '/path/to/datasets/benchmark_RELEASE/'  # folder that contains dataset/.
         elif dataset == 'cityscapes':
