@@ -10,7 +10,7 @@ from dataloaders import custom_transforms as tr
 class CityscapesSegmentation(data.Dataset):
     NUM_CLASSES = 19
 
-    def __init__(self, args, root=Path.db_root_dir('/kaggle/input/cityscapes/Cityspaces'), split="train"):
+    def __init__(self, args, root=Path.db_root_dir('cityspaces'), split="train"):
 
         self.root = root
         self.split = split
