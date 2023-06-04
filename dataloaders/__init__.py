@@ -1,4 +1,5 @@
 from dataloaders.datasets import pascal
+from dataloaders.datasets import cityscapes
 from torch.utils.data import DataLoader
 
 def make_data_loader(args, **kwargs):
