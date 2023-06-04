@@ -17,6 +17,17 @@ def make_data_loader(args, **kwargs):
 
         return train_loader, val_loader, test_loader, num_class
 
+    elif args.dataset == "cityscapes":
+        train_set = CityscapesSegmentation(args, split='train')
+        val_set = CityscapesSegmentation(args, split='val')
+        
+        num_class = train_set.NUM_CLASSES
+        train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, **kwargs)
+        val_loader = DataLoader(val_set, batch_size=1, shuffle=False, **kwargs)
+        test_loader = None
+        
+        return train_loader, val_loader, test_loader, num_class
+        
     else:
         raise NotImplementedError
 
