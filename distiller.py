@@ -102,9 +102,10 @@ class Distiller(nn.Module):
 
         pi_loss = 0
         if self.args.pi_lambda is not None: # pixelwise loss
-          TF = F.normalize(t_feats[5].pow(2).mean(1)) 
-          SF = F.normalize(s_feats[5].pow(2).mean(1)) 
-          pi_loss = self.args.pi_lambda * (TF - SF).pow(2).mean()
+          #TF = F.normalize(t_feats[5].pow(2).mean(1)) 
+          #SF = F.normalize(s_feats[5].pow(2).mean(1)) 
+          #pi_loss = self.args.pi_lambda * (TF - SF).pow(2).mean()
+          lo_loss =  self.args.pi_lambda * torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), F.softmax(t_out / self.temperature, dim=1))
         
         
         ic_loss = 0
@@ -125,8 +126,7 @@ class Distiller(nn.Module):
         
         
         lo_loss = 0
-        if self.args.lo_lambda is not None: #logits loss
-          #lo_loss =  self.args.lo_lambda * torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), F.softmax(t_out / self.temperature, dim=1))
+        if self.args.lo_lambda is not None: 
           b, c, h, w = s_out.shape
           s_logit = torch.reshape(s_out, (b, c, h*w))
           t_logit = torch.reshape(t_out, (b, c, h*w))
@@ -144,7 +144,5 @@ class Distiller(nn.Module):
           ICCS = torch.nn.functional.normalize(ICCS, dim = 1)
           ICCT = torch.nn.functional.normalize(ICCT, dim = 1)
           lo_loss =  self.args.lo_lambda * (ICCS - ICCT).pow(2).mean()/b 
-        
-        kd_loss = pa_loss + pi_loss + ic_loss + lo_loss
 
-        return s_out, kd_loss
+        return s_out, pa_loss, pi_loss, ic_loss, lo_loss
