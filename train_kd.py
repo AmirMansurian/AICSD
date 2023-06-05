@@ -125,11 +125,12 @@ class Trainer(object):
             output, pa_loss, pi_loss, ic_loss, lo_loss = self.d_net(image)
             loss_seg = self.criterion(output, target)
             
-            if self.args.ALW:
-                alpha = epoch/120
-                loss = alpha * (loss_seg + lo_loss) + (1-alpha) * pi_loss
-            else:
-                loss = loss_seg + pa_loss + pi_loss + lo_loss 
+            ########### uncomment lines below for ALW ##################
+            #alpha = epoch/120
+            #loss = alpha * (loss_seg + lo_loss) + (1-alpha) * pi_loss
+            
+            ############# Comment line blow in case of ALW ################
+            loss = loss_seg + pa_loss + pi_loss + lo_loss 
             
             loss.backward()
             optimizer.step()
