@@ -122,9 +122,14 @@ class Trainer(object):
             self.scheduler(optimizer, i, epoch, self.best_pred)
             optimizer.zero_grad()
             
-            output, kd_loss = self.d_net(image)
+            output, pa_loss, pi_loss, ic_loss, lo_loss = self.d_net(image)
             loss_seg = self.criterion(output, target)
-            loss = loss_seg + kd_loss
+            
+            if self.args.ALW:
+                alpha = epoch/120
+                loss = alpha * (loss_seg + lo_loss) + (1-alpha) * pi_loss
+            else:
+                loss = loss_seg + pa_loss + pi_loss + lo_loss 
             
             loss.backward()
             optimizer.step()
