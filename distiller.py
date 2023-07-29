@@ -105,7 +105,7 @@ class Distiller(nn.Module):
           #TF = F.normalize(t_feats[5].pow(2).mean(1)) 
           #SF = F.normalize(s_feats[5].pow(2).mean(1)) 
           #pi_loss = self.args.pi_lambda * (TF - SF).pow(2).mean()
-          lo_loss =  self.args.pi_lambda * torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), F.softmax(t_out / self.temperature, dim=1))
+          pi_loss =  self.args.pi_lambda * torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), F.softmax(t_out / self.temperature, dim=1))
         
         
         ic_loss = 0
