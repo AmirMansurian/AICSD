@@ -1,13 +1,15 @@
 ## Adaptive Inter-Class Similarity Distillation for Semantic Segmentation 
  This repository contains the source code of AICSD [(Adaptive Inter-Class Similarity Distillation for Semantic Segmentation )](https://drive.google.com/file/d/1wrWg54G1ex-8WRYVMGziWTapXFsFMEW0/view?usp=drivesdk).
 
-<img src="https://raw.githubusercontent.com/AmirMansurian/AICSD/main/Images/pull_figure_main.png"  width="500" height="500" />
+<p align="center">
+ <img src="https://raw.githubusercontent.com/AmirMansurian/AICSD/main/Images/pull_figure_main.png"  width="500" height="500"/>
+</p>
+
  Intra-class distributions for each class. Distributions are created by applying softmax to spatial dimension of output prediction of last layer. Similarities between each pair of intra-class distributions have good potential for distillation. Distributions are created from the PASCAL VOC 2012 dataset with 21 category classes.
 
 ### Method Diagram
-\textbf{Overall diagram of the proposed AICSD}. Network outputs are flattened into 1D vectors, followed by application of a softmax function to create intra-class distributions. KL divergence is then calculated between each distribution to create inter-class similarity matrices. An MSE loss function is then defined between the ICS matrices of the teacher and student. Also, KL divergence is calculated between the logits of the teacher and student for pixel-wise distillation. To mitigate the negative effects of teacher network, an adaptive weighting loss strategy is used to scale two distillation losses and ross-entropy loss of semantic segmentation. During training, hyperparameter $\alpha$ undergoes adaptive changes and progressively increases with epoch number.
-
 <img src="https://raw.githubusercontent.com/AmirMansurian/AICSD/main/Images/Method_diagram.png"  width="700" height="300" />
+**Overall diagram of the proposed AICSD**. Network outputs are flattened into 1D vectors, followed by application of a softmax function to create intra-class distributions. KL divergence is then calculated between each distribution to create inter-class similarity matrices. An MSE loss function is then defined between the ICS matrices of the teacher and student. Also, KL divergence is calculated between the logits of the teacher and student for pixel-wise distillation. To mitigate the negative effects of teacher network, an adaptive weighting loss strategy is used to scale two distillation losses and ross-entropy loss of semantic segmentation. During training, hyperparameter $\alpha$ undergoes adaptive changes and progressively increases with epoch number.
 
 ### Performance on PascalVOC2012
 Results of each distillation method on the [PascalVoc 2012](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/) validation set with two different backbones. Results are average of 3 runs with different random seeds.
