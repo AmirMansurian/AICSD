@@ -9,6 +9,7 @@
 
 ### Method Diagram
 <img src="https://raw.githubusercontent.com/AmirMansurian/AICSD/main/Images/Method_diagram.png"  width="700" height="300" />
+
 **Overall diagram of the proposed AICSD**. Network outputs are flattened into 1D vectors, followed by application of a softmax function to create intra-class distributions. KL divergence is then calculated between each distribution to create inter-class similarity matrices. An MSE loss function is then defined between the ICS matrices of the teacher and student. Also, KL divergence is calculated between the logits of the teacher and student for pixel-wise distillation. To mitigate the negative effects of teacher network, an adaptive weighting loss strategy is used to scale two distillation losses and ross-entropy loss of semantic segmentation. During training, hyperparameter $\alpha$ undergoes adaptive changes and progressively increases with epoch number.
 
 ### Performance on PascalVOC2012
