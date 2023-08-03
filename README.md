@@ -1,21 +1,27 @@
-## Knowledge Distillation in Semantic Segmentation 
- This is Implementation of [An Efficient Knowledge Distillation Architecture for Real-time Semantic Segmentation](https://drive.google.com/file/d/1wrWg54G1ex-8WRYVMGziWTapXFsFMEW0/view?usp=drivesdk) [(Slides)](https://docs.google.com/presentation/d/1n-05N4rn-_LZWJ5Lv6Tt9Ks8lSn2-cxsWmbkTWf27gk/edit?usp=sharing).
+## Adaptive Inter-Class Similarity Distillation for Semantic Segmentation 
+ This repository contains the source code of AICSD [(Adaptive Inter-Class Similarity Distillation for Semantic Segmentation )](https://drive.google.com/file/d/1wrWg54G1ex-8WRYVMGziWTapXFsFMEW0/view?usp=drivesdk).
+
+<img src="https://raw.githubusercontent.com/AmirMansurian/AICSD/main/Images/pull_figure_main.png"  width="500" height="500" />
+ Intra-class distributions for each class. Distributions are created by applying softmax to spatial dimension of output prediction of last layer. Similarities between each pair of intra-class distributions have good potential for distillation. Distributions are created from the PASCAL VOC 2012 dataset with 21 category classes.
 
 ### Method Diagram
-The architecture of both the teacher and student networks is Deeplab-V3 +, although their encoders are different. Teacher network is fixed the during the training process; only the student network will be trained with two distillation losses and cross-entropy loss. The pixel-wise distillation module uses the preReLU feature map of the last convolution layer of the decoder before probability scores to transfer detailed spatial information. The pair-wise distillation module uses the feature map of the last layer of the encoder to create a pair-wise similarity matrix and transfer global information.
+\textbf{Overall diagram of the proposed AICSD}. Network outputs are flattened into 1D vectors, followed by application of a softmax function to create intra-class distributions. KL divergence is then calculated between each distribution to create inter-class similarity matrices. An MSE loss function is then defined between the ICS matrices of the teacher and student. Also, KL divergence is calculated between the logits of the teacher and student for pixel-wise distillation. To mitigate the negative effects of teacher network, an adaptive weighting loss strategy is used to scale two distillation losses and ross-entropy loss of semantic segmentation. During training, hyperparameter $\alpha$ undergoes adaptive changes and progressively increases with epoch number.
 
-<img src="https://github.com/AmirMansurian/KD/blob/main/Images/KD.png"  width="700" height="500" />
+<img src="https://raw.githubusercontent.com/AmirMansurian/AICSD/main/Images/Method_diagram.png"  width="700" height="300" />
 
-### Experimental Results
+### Performance on PascalVOC2012
 Results of each distillation method on the [PascalVoc 2012](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/) validation set with two different backbones. Results are average of 3 runs with different random seeds.
 
 <img src="https://github.com/AmirMansurian/KD/blob/main/Images/results.png"   width="700" height="300"/>
 
 
-### Visualization
-Comparison of segmentation results between ground-truth, teacher prediction, student prediction and prediction after distillation.
+### Performance on CityScapes
+Results of each distillation method on the [PascalVoc 2012](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/) validation set with two different backbones. Results are average of 3 runs with different random seeds.
 
-<img src="https://github.com/AmirMansurian/KD/blob/main/Images/experiments.png"   width="700" height="600"/>
+<img src="https://github.com/AmirMansurian/KD/blob/main/Images/results.png"   width="700" height="300"/>
+
+### Visualization
+<img src="https://raw.githubusercontent.com/AmirMansurian/AICSD/main/Images/visualization_2.png"   width="700" height="400"/>
 
 ### How to run
   ```shell
@@ -36,4 +42,4 @@ If you use this repository for your research or wish to refer to our distillatio
 ```
 
 ### Acknowledgement
-This codebase is heavily borrowed from [A Comprehensive Overhaul of Feature Distillation ](https://github.com/clovaai/overhaul-distillation) and [structure_knowledge_distillation](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=2ahUKEwiM3vjGyuD7AhXohf0HHcA4B44QFnoECDIQAQ&url=https%3A%2F%2Fgithub.com%2FirfanICMLL%2Fstructure_knowledge_distillation&usg=AOvVaw2rg7lYss4wqcvKKDH0UWoN). Thanks for their excellent works.
+This codebase is heavily borrowed from [A Comprehensive Overhaul of Feature Distillation ](https://github.com/clovaai/overhaul-distillation). Thanks for their excellent work.
