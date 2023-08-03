@@ -13,22 +13,53 @@
 **Overall diagram of the proposed AICSD**. Network outputs are flattened into 1D vectors, followed by application of a softmax function to create intra-class distributions. KL divergence is then calculated between each distribution to create inter-class similarity matrices. An MSE loss function is then defined between the ICS matrices of the teacher and student. Also, KL divergence is calculated between the logits of the teacher and student for pixel-wise distillation. To mitigate the negative effects of teacher network, an adaptive weighting loss strategy is used to scale two distillation losses and ross-entropy loss of semantic segmentation. During training, hyperparameter $\alpha$ undergoes adaptive changes and progressively increases with epoch number.
 
 ### Performance on PascalVOC2012
-Results of each distillation method on the [PascalVoc 2012](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/) validation set with two different backbones. Results are average of 3 runs with different random seeds.
 
-<img src="https://github.com/AmirMansurian/KD/blob/main/Images/results.png"   width="700" height="300"/>
+| Method                               | mIoU(%)            | Params(M) |
+| ------------------------------------ | ------------------ | --------- |
+| Teacher: Deeplab-V3 + (ResNet-101)   | 77.85              | 59.3      |
+| Student1: Deeplab-V3 + (ResNet-18)   | 67.50              | 16.6      |
+| Student2: Deeplab-V3 + (MobileNet-V2)| 63.92              | 5.9       |
+| Student1 + KD                        | 69.13 ± 0.11       | 16.6      |
+| Student1 + AD                        | 68.95 ± 0.26       | 16.6      |
+| Student1 + SP                        | 69.04 ± 0.10       | 16.6      |
+| Student1 + ICKD                      | 69.13 ± 0.17       | 16.6      |
+| Student1 + AICSD (ours)              | 70.03 ± 0.13   | 16.6      |
+| Student2 + KD                        | 66.39 ± 0.21       | 5.9       |
+| Student2 + AD                        | 66.27 ± 0.17       | 5.9       |
+| Student2 + SP                        | 66.32 ± 0.05       | 5.9       |
+| Student2 + ICKD                      | 67.01 ± 0.10       | 5.9       |
+| Student2 + AICSD (ours)              | 68.05 ± 0.24   | 5.9       |
 
 
 ### Performance on CityScapes
-Results of each distillation method on the [PascalVoc 2012](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/) validation set with two different backbones. Results are average of 3 runs with different random seeds.
-
-<img src="https://github.com/AmirMansurian/KD/blob/main/Images/results.png"   width="700" height="300"/>
+| Method            | mIoU(%)  | Accuracy(%) |
+| ----------------- | -------- | ----------- |
+| T: ResNet101      | 77.66    | 84.05       |
+| S1: ResNet18      | 64.09    | 74.8        |
+| S2: MobileNet v2  | 63.05    | 73.38       |
+| S1 + KD           | 65.21 (+1.12) | 76.32 (+1.74) |
+| S1 + AD           | 65.29 (+1.20) | 76.27 (+1.69) |
+| S1 + SP           | 65.64 (+1.55) | 76.90 (+2.05) |
+| S1 + ICKD         | 66.98 (+2.89) | 77.48 (+2.90) |
+| S1 + AICSD (ours) | 68.46 (+4.37) | 78.30 (+3.72) |
+| S2 + KD           | 64.03 (+0.98) | 75.34 (+1.96)   |
+| S2 + AD           | 63.72 (+0.67) | 74.79 (+1.41)   |
+| S2 + SP           | 64.22 (+1.17) | 75.28 (+1.90)   |
+| S2 + ICKD         | 65.55 (+2.50) | 76.48 (+3.10)   |
+| S2 + AICSD (ours) | 66.53 (+3.48) | 76.96 (+3.58) |
 
 ### Visualization
 <img src="https://raw.githubusercontent.com/AmirMansurian/AICSD/main/Images/visualization_2.png"   width="700" height="400"/>
 
 ### How to run
+For ICSD method:
   ```shell
-  python train_kd.py --backbone resnet18 --dataset pascal  --pa_lambda 1 --pi_lambda 100 
+  python train_kd.py --backbone resnet18 --dataset pascal  --pa_lambda 9500
+  ```
+
+For AICSD method:
+  ```shell
+  python train_kd.py --backbone resnet18 --dataset pascal  --pa_lambda 9500 --pi_lambda 10 --ALW
   ```
 
 ### Teacher model
