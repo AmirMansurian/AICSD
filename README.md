@@ -23,12 +23,12 @@
 | Student1 + AD                        | 68.95 ± 0.26       | 16.6      |
 | Student1 + SP                        | 69.04 ± 0.10       | 16.6      |
 | Student1 + ICKD                      | 69.13 ± 0.17       | 16.6      |
-| Student1 + AICSD (ours)              | 70.03 ± 0.13   | 16.6      |
+| Student1 + AICSD (ours)              | **70.03 ± 0.13**  | 16.6      |
 | Student2 + KD                        | 66.39 ± 0.21       | 5.9       |
 | Student2 + AD                        | 66.27 ± 0.17       | 5.9       |
 | Student2 + SP                        | 66.32 ± 0.05       | 5.9       |
 | Student2 + ICKD                      | 67.01 ± 0.10       | 5.9       |
-| Student2 + AICSD (ours)              | 68.05 ± 0.24   | 5.9       |
+| Student2 + AICSD (ours)              | **68.05 ± 0.24**   | 5.9       |
 
 
 ### Performance on CityScapes
@@ -41,12 +41,12 @@
 | S1 + AD           | 65.29 (+1.20) | 76.27 (+1.69) |
 | S1 + SP           | 65.64 (+1.55) | 76.90 (+2.05) |
 | S1 + ICKD         | 66.98 (+2.89) | 77.48 (+2.90) |
-| S1 + AICSD (ours) | 68.46 (+4.37) | 78.30 (+3.72) |
+| S1 + AICSD (ours) | **68.46 (+4.37)** | **78.30 (+3.72)** |
 | S2 + KD           | 64.03 (+0.98) | 75.34 (+1.96)   |
 | S2 + AD           | 63.72 (+0.67) | 74.79 (+1.41)   |
 | S2 + SP           | 64.22 (+1.17) | 75.28 (+1.90)   |
 | S2 + ICKD         | 65.55 (+2.50) | 76.48 (+3.10)   |
-| S2 + AICSD (ours) | 66.53 (+3.48) | 76.96 (+3.58) |
+| S2 + AICSD (ours) | **66.53** (+3.48) | **76.96 (+3.58)** |
 
 ### Visualization
 <img src="https://raw.githubusercontent.com/AmirMansurian/AICSD/main/Images/visualization_2.png"   width="700" height="400"/>
