@@ -1,5 +1,5 @@
 ## Adaptive Inter-Class Similarity Distillation for Semantic Segmentation 
- This repository contains the source code of AICSD [(Adaptive Inter-Class Similarity Distillation for Semantic Segmentation )](https://drive.google.com/file/d/1wrWg54G1ex-8WRYVMGziWTapXFsFMEW0/view?usp=drivesdk).
+ This repository contains the source code of AICSD [(Adaptive Inter-Class Similarity Distillation for Semantic Segmentation )](https://arxiv.org/abs/2308.04243).
 
 <p align="center">
  <img src="https://raw.githubusercontent.com/AmirMansurian/AICSD/main/Images/pull_figure_main.png"  width="500" height="500"/>
