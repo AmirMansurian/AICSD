@@ -71,15 +71,12 @@ Download following pre-trained teacher network and put it into ```pretrained/```
  ## Citation
 If you use this repository for your research or wish to refer to our distillation method, please use the following BibTeX entry:
 ```
-@misc{mansourian2023aicsd,
-      title={AICSD: Adaptive Inter-Class Similarity Distillation for Semantic Segmentation}, 
-      author={Amir M. Mansourian and Rozhan Ahmadi and Shohreh Kasaei},
-      year={2023},
-      eprint={2308.04243},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV}
+@article{mansourian2023aicsd,
+  title={AICSD: Adaptive Inter-Class Similarity Distillation for Semantic Segmentation},
+  author={Mansourian, Amir M and Ahmadi, Rozhan and Kasaei, Shohreh},
+  journal={arXiv preprint arXiv:2308.04243},
+  year={2023}
 }
-
 ```
 
 ### Acknowledgement
