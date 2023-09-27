@@ -2,7 +2,6 @@ import argparse
 import os
 import numpy as np
 from tqdm import tqdm
-import wandb
 
 from mypath import Path
 from dataloaders import make_data_loader
@@ -34,7 +33,7 @@ class Trainer(object):
                              output_stride=args.out_stride,
                              sync_bn=args.sync_bn,
                              freeze_bn=args.freeze_bn)
-        checkpoint = torch.load('/kaggle/working/' + args.teacher_path)
+        checkpoint = torch.load('pretrained/deeplab-resnet.pth.tar')
         self.t_net.load_state_dict(checkpoint['state_dict'])
 
         self.s_net = DeepLab(num_classes=self.nclass,
@@ -42,14 +41,12 @@ class Trainer(object):
                              output_stride=args.out_stride,
                              sync_bn=args.sync_bn,
                              freeze_bn=args.freeze_bn)
-       # checkpoint = torch.load('/kaggle/working/model.pth.tar')
-        #self.s_net.load_state_dict(checkpoint['state_dict'])
-        self.d_net = distiller.Distiller(self.t_net, self.s_net, self.args)
+        self.d_net = distiller.Distiller(self.t_net, self.s_net)
 
-       # print('Teacher Net: ')
-        #print(self.t_net)
-        #print('Student Net: ')
-        #print(self.s_net)
+        print('Teacher Net: ')
+        print(self.t_net)
+        print('Student Net: ')
+        print(self.s_net)
         print('the number of teacher model parameters: {}'.format(
             sum([p.data.nelement() for p in self.t_net.parameters()])))
         print('the number of student model parameters: {}'.format(
@@ -60,9 +57,11 @@ class Trainer(object):
 
         distill_params = [{'params': self.s_net.get_1x_lr_params(), 'lr': args.lr},
                           {'params': self.s_net.get_10x_lr_params(), 'lr': args.lr * 10},
-                          {'params': self.d_net.Connectors.parameters(), 'lr': args.lr * 10}]
+                          {'params': self.d_net.Connectors.parameters(), 'lr': args.lr * 10},
+                          {'params': self.d_net.attns.parameters(), 'lr': args.lr * 10},]
 
-        init_params = [{'params': self.d_net.Connectors.parameters(), 'lr': args.lr * 10}]
+        init_params = [{'params': self.d_net.Connectors.parameters(), 'lr': args.lr * 10},
+                       {'params': self.d_net.attns.parameters(), 'lr': args.lr * 10}]
 
         # # Define Optimizer
         self.optimizer = torch.optim.SGD(distill_params, momentum=args.momentum,
@@ -95,7 +94,7 @@ class Trainer(object):
             self.d_net = torch.nn.DataParallel(self.d_net).cuda()
 
         # Resuming checkpoint
-        self.best_pred = 0.0       
+        self.best_pred = 0.0
 
         # Clear start epoch if fine-tuning
         if args.ft:
@@ -121,17 +120,17 @@ class Trainer(object):
                 image, target = image.cuda(), target.cuda()
             self.scheduler(optimizer, i, epoch, self.best_pred)
             optimizer.zero_grad()
-            
-            output, pa_loss, pi_loss, ic_loss, lo_loss = self.d_net(image)
+            output, loss_cbam, loss_ickd = self.d_net(image, target)
+            # output, loss_distill = self.d_net(image, target)
+
             loss_seg = self.criterion(output, target)
+            # loss = loss_seg + loss_distill.sum() / batch_size
             
-            ########### uncomment lines below for ALW ##################
-            #alpha = epoch/120
-            #loss = alpha * (loss_seg + lo_loss) + (1-alpha) * pi_loss
-            
-            ############# Comment line blow in case of ALW ################
-            loss = loss_seg + pa_loss + pi_loss + lo_loss 
-            
+            # alpha = (epoch + 1) / self.args.epochs
+
+            loss = loss_seg + loss_ickd.sum() / batch_size + loss_cbam.sum() / batch_size
+            # loss = loss_seg + loss_distill.sum() / batch_size
+
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
@@ -139,7 +138,8 @@ class Trainer(object):
 
         print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
         print('Loss: %.3f' % train_loss)
-        wandb.log({"train loss": train_loss})
+        print(loss_seg, loss_cbam.sum() / batch_size, loss_ickd.sum() / batch_size)
+        # print(loss_seg, loss_distill.sum() / batch_size)
 
         if self.args.no_val:
             # save checkpoint every epoch
@@ -180,7 +180,6 @@ class Trainer(object):
         print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
         print("Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(Acc, Acc_class, mIoU, FWIoU))
         print('Loss: %.3f' % test_loss)
-        wandb.log({"test loss": test_loss, "mIOU": mIoU})
 
         new_pred = mIoU
         if new_pred > self.best_pred:
@@ -263,19 +262,6 @@ def main():
                         help='evaluuation interval (default: 1)')
     parser.add_argument('--no-val', action='store_true', default=False,
                         help='skip validation during training')
-    
-    #loss options
-    parser.add_argument('--pi_lambda', type=float, default=None,
-                        help='coefficient for pixelwise loss')
-    parser.add_argument('--pa_lambda', type=float, default=None,
-                        help='coefficient for pairwise loss')    
-    parser.add_argument('--lo_lambda', type=float, default=None,
-                        help='coefficient for logits loss')
-    parser.add_argument('--ic_lambda', type=float, default=None,
-                        help='coefficient for inter class loss')
-    
-    parser.add_argument('--teacher_path', type=str, default='/kaggle/working/checkpoint.pth.tar',
-                        help='path to the pretrained teache')
 
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -284,19 +270,6 @@ def main():
             args.gpu_ids = [int(s) for s in args.gpu_ids.split(',')]
         except ValueError:
             raise ValueError('Argument --gpu_ids must be a comma-separated list of integers only')
-            
-            
-     
-    wandb.init(project="Knowledge Deistillation", entity="ipl_runs", name="feature maps",
-      config={
-      "learning_rate": 0.007,
-      "architecture": "DeepLab",
-      "dataset": "PascalVoc 2012",
-      "epochs": 120,
-      })
-    
-    
-    
 
     # default settings for epochs, batch_size and lr
     if args.epochs is None:
@@ -324,7 +297,7 @@ def main():
 
     if args.checkname is None:
         args.checkname = 'deeplab-'+str(args.backbone)
-    print(args)
+    # print(args)
     torch.manual_seed(args.seed)
     trainer = Trainer(args)
     print('Starting Epoch:', trainer.args.start_epoch)
@@ -333,8 +306,6 @@ def main():
         trainer.training(epoch)
         if not trainer.args.no_val and epoch % args.eval_interval == (args.eval_interval - 1):
             trainer.validation(epoch)
-            
-    wandb.finish()
 
 
 if __name__ == "__main__":

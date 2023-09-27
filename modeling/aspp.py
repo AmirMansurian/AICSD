@@ -99,7 +99,6 @@ class ASPP(nn.Module):
         x = self.bn1(x)
         feat1 = x
         x = self.relu(x)
-        feat2 = x
 
         return [feat1], x
 
