@@ -41,8 +41,9 @@ class Trainer(object):
                              output_stride=args.out_stride,
                              sync_bn=args.sync_bn,
                              freeze_bn=args.freeze_bn)
+        
+        
         self.d_net = distiller.Distiller(self.t_net, self.s_net)
-
         print('Teacher Net: ')
         print(self.t_net)
         print('Student Net: ')
@@ -120,16 +121,12 @@ class Trainer(object):
                 image, target = image.cuda(), target.cuda()
             self.scheduler(optimizer, i, epoch, self.best_pred)
             optimizer.zero_grad()
-            output, loss_cbam, loss_ickd = self.d_net(image, target)
-            # output, loss_distill = self.d_net(image, target)
+            output, loss_cbam, dist_loss = self.d_net(image, target)
 
             loss_seg = self.criterion(output, target)
-            # loss = loss_seg + loss_distill.sum() / batch_size
-            
-            # alpha = (epoch + 1) / self.args.epochs
 
-            loss = loss_seg + loss_ickd.sum() / batch_size + loss_cbam.sum() / batch_size
-            # loss = loss_seg + loss_distill.sum() / batch_size
+            loss = loss_seg + dist_loss.sum() / batch_size
+
 
             loss.backward()
             optimizer.step()
@@ -138,7 +135,7 @@ class Trainer(object):
 
         print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
         print('Loss: %.3f' % train_loss)
-        print(loss_seg, loss_cbam.sum() / batch_size, loss_ickd.sum() / batch_size)
+        print(loss_seg, loss_cbam.sum() / batch_size, dist_loss.sum() / batch_size)
         # print(loss_seg, loss_distill.sum() / batch_size)
 
         if self.args.no_val:
