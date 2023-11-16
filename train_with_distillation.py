@@ -59,10 +59,12 @@ class Trainer(object):
         distill_params = [{'params': self.s_net.get_1x_lr_params(), 'lr': args.lr},
                           {'params': self.s_net.get_10x_lr_params(), 'lr': args.lr * 10},
                           {'params': self.d_net.Connectors.parameters(), 'lr': args.lr * 10},
-                          {'params': self.d_net.attns.parameters(), 'lr': args.lr * 10},]
+                          {'params': self.d_net.criterion_memory_contrast.parameters(), 'lr': args.lr * 10}]
+                        #   {'params': self.d_net.attns.parameters(), 'lr': args.lr * 10},]
 
         init_params = [{'params': self.d_net.Connectors.parameters(), 'lr': args.lr * 10},
-                       {'params': self.d_net.attns.parameters(), 'lr': args.lr * 10}]
+                       {'params': self.d_net.criterion_memory_contrast.parameters(), 'lr': args.lr * 10}]
+                    #    {'params': self.d_net.attns.parameters(), 'lr': args.lr * 10}]
 
         # # Define Optimizer
         self.optimizer = torch.optim.SGD(distill_params, momentum=args.momentum,
@@ -121,11 +123,20 @@ class Trainer(object):
                 image, target = image.cuda(), target.cuda()
             self.scheduler(optimizer, i, epoch, self.best_pred)
             optimizer.zero_grad()
-            output, loss_cbam, dist_loss = self.d_net(image, target)
+            output, kd_loss, minibatch_pixel_contrast_loss, \
+            memory_pixel_contrast_loss, memory_region_contrast_loss = self.d_net(image, target)
+
+            # reduce all losses 
+            kd_loss = kd_loss.sum() / batch_size
+            minibatch_pixel_contrast_loss = minibatch_pixel_contrast_loss.sum() / batch_size
+            memory_pixel_contrast_loss = memory_pixel_contrast_loss.sum() / batch_size
+            memory_region_contrast_loss = memory_region_contrast_loss.sum() / batch_size
+
 
             loss_seg = self.criterion(output, target)
 
-            loss = loss_seg + dist_loss.sum() / batch_size
+            loss = loss_seg + kd_loss + minibatch_pixel_contrast_loss + memory_pixel_contrast_loss 
+            + memory_region_contrast_loss
 
 
             loss.backward()
@@ -135,8 +146,8 @@ class Trainer(object):
 
         print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
         print('Loss: %.3f' % train_loss)
-        print(loss_seg, loss_cbam.sum() / batch_size, dist_loss.sum() / batch_size)
-        # print(loss_seg, loss_distill.sum() / batch_size)
+
+        print(loss_seg, kd_loss, minibatch_pixel_contrast_loss, memory_pixel_contrast_loss, memory_region_contrast_loss)
 
         if self.args.no_val:
             # save checkpoint every epoch
@@ -257,6 +268,9 @@ def main():
     # evaluation option
     parser.add_argument('--eval-interval', type=int, default=1,
                         help='evaluuation interval (default: 1)')
+    
+    parser.add_argument('--local-rank', type=int, default=0)
+
     parser.add_argument('--no-val', action='store_true', default=False,
                         help='skip validation during training')
 

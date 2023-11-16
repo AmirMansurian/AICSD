@@ -6,7 +6,9 @@ import numpy as np
 from cbam import *
 from dist_kd import DIST   
 from da_att import *
-import scipy
+from kd import CriterionKD
+from cirkd_memory import StudentSegContrast
+from cirkd_mini_batch import CriterionMiniBatchCrossImagePair
 
 import math
 
@@ -53,13 +55,29 @@ class Distiller(nn.Module):
         t_channels = t_net.get_channel_num()
         s_channels = s_net.get_channel_num()
 
-        self.crit = nn.CrossEntropyLoss(size_average = True).cuda()
-        self.kd_crit = DIST().cuda()
+        # self.crit = nn.CrossEntropyLoss(size_average = True).cuda()
+        # self.kd_crit = DIST().cuda()
 
         self.Connectors = nn.ModuleList([build_feature_connector(t, s) for t, s in zip(t_channels, s_channels)])
 
-        # self.cbams = nn.ModuleList([CBAM(s_channels[i], model = 'student').cuda() for i in range(len(s_channels))])
-        # self.attn = PAM_Module(s_channels[3], 'student').cuda()
+
+        img_rand = torch.rand(2, 3, 512, 512)
+        feat_t, _ = t_net.extract_feature(img_rand)
+        num_class = feat_t[-1].shape[1]
+
+
+        self.criterion_kd = CriterionKD(temperature=1.0).cuda()
+        self.criterion_minibatch = CriterionMiniBatchCrossImagePair(temperature=0.1).cuda()
+        self.criterion_memory_contrast = StudentSegContrast(num_classes=num_class,
+                                                     pixel_memory_size=20000,
+                                                     region_memory_size=2000,
+                                                     region_contrast_size=1024//num_class+1,
+                                                     pixel_contrast_size=4096//num_class+1,
+                                                     contrast_kd_temperature=1.0,
+                                                     contrast_temperature=0.1,
+                                                     s_channels=s_channels[-2],
+                                                     t_channels=t_channels[-2], 
+                                                     ignore_label=255).cuda()
 
         self.attns = nn.ModuleList([CBAM(s_channels[i], model = 'student').cuda() for i in range(3, len(s_channels))])
         
@@ -79,65 +97,28 @@ class Distiller(nn.Module):
 
         t_feats, t_out = self.t_net.extract_feature(x)
         s_feats, s_out = self.s_net.extract_feature(x)
+
         feat_num = len(t_feats)
-
-        loss_distill = 0
-
-
-        def overhaul():
-            loss_distill = 0
-            for i in range(feat_num):
-                s_feats[i] = self.Connectors[i](s_feats[i])
-                loss_distill += distillation_loss(s_feats[i], t_feats[i].detach(), getattr(self, 'margin%d' % (i+1))) \
-                                / self.loss_divider[i]
-            return loss_distill
-        
-        # b, c, h, w = t_feats[3].shape
-        # M = h * w
-        # s_feats[3] = self.Connectors[3](self.attn(s_feats[3])).view(b, c, -1)
-        # t_feats[3] = PAM_Module(t_feats[3].shape[1], 'teacher').cuda()(t_feats[3]).view(b, c, -1).detach()
-
-
-
-        # s_feats[3] = torch.nn.functional.normalize(s_feats[3], dim = 1)
-        # t_feats[3] = torch.nn.functional.normalize(t_feats[3], dim = 1)
-
-        # loss_cbam = torch.norm(s_feats[3] - t_feats[3], dim = 1).sum() / M * 0.1
 
         loss_cbam = 0
 
-        for i in range(3, feat_num):
-            b,c,h,w = t_feats[i].shape
-            M = h * w
-            s_feats[i] = self.Connectors[i](self.attns[i-3](s_feats[i])).view(b, c, -1)
-            t_feats[i] = CBAM(t_feats[i].shape[1], model = 'teacher').cuda()(t_feats[i]).view(b, c, -1).detach()
-
-            s_feats[i] = torch.nn.functional.normalize(s_feats[i], dim = 1)
-            t_feats[i] = torch.nn.functional.normalize(t_feats[i], dim = 1)
-
-            loss_cbam += torch.norm(s_feats[i] - t_feats[i], dim = 1).sum() / M * 0.1
-
-
-        # pi_loss = torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), F.softmax(t_out / self.temperature, dim=1)) * 10
-
-        dist_loss = self.kd_crit(s_out, t_out)
-
-
-        
-        # loss_cbam = 0
-
-        # for i in range(feat_num):
-        #     s_feats[i] = self.Connectors[i](self.cbams[i](s_feats[i]))
-        #     t_feats[i] = CBAM(t_feats[i].shape[1], model = 'teacher').cuda()(t_feats[i])
+        # for i in range(3, feat_num):
+        #     b,c,h,w = t_feats[i].shape
+        #     M = h * w
+        #     s_feats[i] = self.Connectors[i](self.attns[i-3](s_feats[i])).view(b, c, -1)
+        #     t_feats[i] = CBAM(t_feats[i].shape[1], model = 'teacher').cuda()(t_feats[i]).view(b, c, -1).detach()
 
         #     s_feats[i] = torch.nn.functional.normalize(s_feats[i], dim = 1)
         #     t_feats[i] = torch.nn.functional.normalize(t_feats[i], dim = 1)
 
+        #     loss_cbam += torch.norm(s_feats[i] - t_feats[i], dim = 1).sum() / M * 0.1
 
-        #     # loss_cbam += distillation_loss(s_feats[i], t_feats[i].detach(), getattr(self, 'margin%d' % (i+1))) \
-        #                     # / self.loss_divider[i] * 1e-4
-        #     loss_cbam += torch.nn.functional.mse_loss(s_feats[i],t_feats[i].detach() , reduction="none").sum() * 1e-5
-            
-        # loss_cbam = loss_cbam / 2
+        kd_loss = self.criterion_kd(s_out, t_out)
+        minibatch_pixel_contrast_loss = self.criterion_minibatch(s_feats[-2], t_feats[-2])
 
-        return s_out, loss_cbam, dist_loss
+        _, predict = torch.max(s_out, dim=1) 
+        memory_pixel_contrast_loss, memory_region_contrast_loss = \
+            self.criterion_memory_contrast(s_feats[-2], t_feats[-2].detach(), y, predict)
+        
+        return s_out, kd_loss, minibatch_pixel_contrast_loss, \
+            memory_pixel_contrast_loss, memory_region_contrast_loss
