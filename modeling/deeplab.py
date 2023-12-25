@@ -5,10 +5,11 @@ from modeling.sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
 from modeling.aspp import build_aspp
 from modeling.decoder import build_decoder
 from modeling.backbone import build_backbone
+from cbam import *
 
 class DeepLab(nn.Module):
     def __init__(self, backbone='resnet', output_stride=16, num_classes=21,
-                 sync_bn=True, freeze_bn=False):
+                 sync_bn=True, freeze_bn=False, is_student = True):
         super(DeepLab, self).__init__()
         if backbone == 'drn':
             output_stride = 8
@@ -21,6 +22,11 @@ class DeepLab(nn.Module):
         self.backbone = build_backbone(backbone, output_stride, BatchNorm)
         self.aspp = build_aspp(backbone, output_stride, BatchNorm)
         self.decoder = build_decoder(num_classes, backbone, BatchNorm)
+
+        self.is_student = is_student
+
+        if self.is_student:
+            self.cbam_modules = None
 
         if freeze_bn:
             self.freeze_bn()
@@ -83,4 +89,27 @@ class DeepLab(nn.Module):
         x = F.interpolate(x, size=input.size()[2:], mode='bilinear', align_corners=True)
 
         return feats, x
+    
+
+    def set_cbam_modules(self, cbam_modules):
+        self.cbam_modules = cbam_modules
+    
+    def extract_cbam_features(self, input):
+        feats, _ = self.extract_feature(input)
+        feat_num = len(feats)
+
+        if self.is_student:
+            if self.cbam_modules is None:
+                return None
+            for i in range(3, feat_num):
+                b,c,h,w = feats[i].shape
+                feats[i] = self.cbam_modules[i-3](feats[i]).view(b, c, -1).detach()
+                feats[i] = torch.nn.functional.normalize(feats[i], dim = 1)
+        else:
+            for i in range(3, feat_num):
+                b,c,h,w = feats[i].shape
+                feats[i] = CBAM(feats[i].shape[1], model = 'teacher').cuda()(feats[i]).view(b, c, -1).detach()
+                feats[i] = torch.nn.functional.normalize(feats[i], dim = 1)
+
+        return feats
 
