@@ -86,8 +86,8 @@ class Distiller(nn.Module):
 
     def forward(self, x):
 
-        t_feats, t_out = self.t_net.extract_feature(x)
-        s_feats, s_out = self.s_net.extract_feature(x)
+        t_feats, t_attens, t_out = self.t_net.extract_feature(x)
+        s_feats, s_attens, s_out = self.s_net.extract_feature(x)
         feat_num = len(t_feats)
         
         lad_loss = 0
