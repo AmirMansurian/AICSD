@@ -69,4 +69,4 @@ class Distiller(nn.Module):
             lad_loss += (s_feats[i] / torch.norm(s_feats[i], p = 2) - t_feats[i] / torch.norm(t_feats[i], p = 2)).pow(2).sum() / (b) * 10
         
 
-        return s_out, kd_loss
+        return s_out, lad_loss
