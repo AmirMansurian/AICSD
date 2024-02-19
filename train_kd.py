@@ -54,7 +54,7 @@ class Trainer(object):
         self.batch_size = args.batch_size
 
         distill_params = [{'params': self.s_net.get_1x_lr_params(), 'lr': args.lr},
-                          {'params': self.s_net.get_10x_lr_params(), 'lr': args.lr * 10}]
+                          {'params': self.s_net.get_10x_lr_params(), 'lr': args.lr * 10},
                           {'params': self.d_net.Connectors.parameters(), 'lr': args.lr * 10}]
 
         init_params = [{'params': self.d_net.Connectors.parameters(), 'lr': args.lr * 10}]
