@@ -129,7 +129,6 @@ class Trainer(object):
 
         print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
         print('Loss: %.3f' % train_loss)
-        wandb.log({"train loss": train_loss})
 
         if self.args.no_val:
             # save checkpoint every epoch
@@ -170,7 +169,6 @@ class Trainer(object):
         print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
         print("Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(Acc, Acc_class, mIoU, FWIoU))
         print('Loss: %.3f' % test_loss)
-        wandb.log({"test loss": test_loss, "mIOU": mIoU})
 
         new_pred = mIoU
         if new_pred > self.best_pred:
@@ -274,20 +272,7 @@ def main():
             args.gpu_ids = [int(s) for s in args.gpu_ids.split(',')]
         except ValueError:
             raise ValueError('Argument --gpu_ids must be a comma-separated list of integers only')
-            
-            
-     
-    wandb.init(project="Knowledge Deistillation", entity="ipl_runs", name="feature maps",
-      config={
-      "learning_rate": 0.007,
-      "architecture": "DeepLab",
-      "dataset": "PascalVoc 2012",
-      "epochs": 120,
-      })
     
-    
-    
-
     # default settings for epochs, batch_size and lr
     if args.epochs is None:
         epoches = {
