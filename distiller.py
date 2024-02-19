@@ -53,7 +53,6 @@ class Distiller(nn.Module):
         self.s_net = s_net
         self.args = args
         self.loss_divider = [8, 4, 2, 1, 1, 4*4]
-        self.criterion = sim_dis_compute
         self.temperature = 1
         self.scale = 0.5
 
