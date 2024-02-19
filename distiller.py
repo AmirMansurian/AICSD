@@ -62,11 +62,17 @@ class Distiller(nn.Module):
         s_feats, s_attens, s_out = self.s_net.extract_feature(x)
         feat_num = len(t_feats)
         
-        lad_loss = 0
+        loss_cbam = 0
         for i in range(3, feat_num):
             b,c,h,w = t_feats[i].shape
-            s_feats[i] = self.Connectors[i](s_feats[i])
-            lad_loss += (s_feats[i] / torch.norm(s_feats[i], p = 2) - t_feats[i] / torch.norm(t_feats[i], p = 2)).pow(2).sum() / (b) * 10
+            #s_feats[i] = self.Connectors[i](s_feats[i])
+            #lad_loss += (s_feats[i] / torch.norm(s_feats[i], p = 2) - t_feats[i] / torch.norm(t_feats[i], p = 2)).pow(2).sum() / (b) * 10
+
+            s_attens[i] = self.Connectors[i](s_attens[i])
+            s_attens[i] = torch.nn.functional.normalize(s_attens[i], dim = 1)
+            t_attens[i] = torch.nn.functional.normalize(t_attens[i], dim = 1)
+
+            loss_cbam += torch.norm(s_attens[i] - t_attens[i], dim = 1).sum() / (h * w * b) * 0.1
         
 
-        return s_out, lad_loss
+        return s_out, loss_cbam
