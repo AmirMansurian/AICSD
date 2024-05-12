@@ -59,10 +59,10 @@ class Trainer(object):
         distill_params = [{'params': self.s_net.get_1x_lr_params(), 'lr': args.lr},
                           {'params': self.s_net.get_10x_lr_params(), 'lr': args.lr * 10},
                           {'params': self.d_net.Connectors.parameters(), 'lr': args.lr * 10},
-                          {'params': self.d_net.attns.parameters(), 'lr': args.lr * 10},]
+                          {'params': self.d_net.self_attns.parameters(), 'lr': args.lr * 10},]
 
         init_params = [{'params': self.d_net.Connectors.parameters(), 'lr': args.lr * 10},
-                       {'params': self.d_net.attns.parameters(), 'lr': args.lr * 10}]
+                       {'params': self.d_net.self_attns.parameters(), 'lr': args.lr * 10}]
 
         # # Define Optimizer
         self.optimizer = torch.optim.SGD(distill_params, momentum=args.momentum,
@@ -122,11 +122,11 @@ class Trainer(object):
             self.scheduler(optimizer, i, epoch, self.best_pred)
             optimizer.zero_grad()
 
-            output, kd_loss, lad_loss, pad_loss, cad_loss, naive_loss, cbam_loss = self.d_net(image, target)
+            output, kd_loss, lad_loss, pad_loss, cad_loss, naive_loss, cbam_loss, self_loss = self.d_net(image, target)
 
             loss_seg = self.criterion(output, target)
 
-            loss = loss_seg + naive_loss + kd_loss + lad_loss + pad_loss + cad_loss + cbam_loss
+            loss = loss_seg + naive_loss + kd_loss + lad_loss + pad_loss + cad_loss + cbam_loss + self_loss
 
             loss.backward()
             optimizer.step()
@@ -136,8 +136,9 @@ class Trainer(object):
         print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
         print('Loss: %.3f' % train_loss)
 
-        print('Losses: seg: {}, kd: {}, lad: {}, pad: {}, cad: {}, naive: {}, cbam: {}'.format(loss_seg, kd_loss, lad_loss, pad_loss, cad_loss, naive_loss, cbam_loss))
+        # print('Losses: seg: {}, kd: {}, lad: {}, pad: {}, cad: {}, naive: {}, cbam: {}'.format(loss_seg, kd_loss, lad_loss, pad_loss, cad_loss, naive_loss, cbam_loss))
 
+        print('Losses: seg: {}, kd: {}, lad: {}, pad: {}, cad: {}, naive: {}, cbam: {}, self: {}'.format(loss_seg, kd_loss, lad_loss, pad_loss, cad_loss, naive_loss, cbam_loss, self_loss))
         if self.args.no_val:
             # save checkpoint every epoch
             is_best = False
@@ -181,7 +182,8 @@ class Trainer(object):
         new_pred = mIoU
         if new_pred > self.best_pred:
 
-            self.s_net.module.set_cbam_modules(self.d_net.module.get_cbam_modules())
+            # self.s_net.module.set_cbam_modules(self.d_net.module.get_cbam_modules())
+            self.s_net.module.set_attn_modules(self.d_net.module.get_attn_modules())
 
             is_best = True
             self.best_pred = new_pred
@@ -276,6 +278,8 @@ def main():
                         help = 'coefficient for cad loss')
     parser.add_argument('--cbam_lambda', type = float, default = None,
                         help = 'coefficient for cbam loss')
+    parser.add_argument('--self_att', type = float, default = None,
+                        help = 'coefficient for self attention loss')
 
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()

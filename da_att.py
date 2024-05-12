@@ -13,7 +13,7 @@ from torch.nn import functional as F
 from torch.autograd import Variable
 torch_ver = torch.__version__[:3]
 
-__all__ = ['PAM_Module', 'CAM_Module']
+__all__ = ['PAM_Module', 'CAM_Module', 'Self_Att']
 
 
 class PAM_Module(Module):
@@ -21,7 +21,6 @@ class PAM_Module(Module):
     #Ref from SAGAN
     def __init__(self, in_dim, model):
         super(PAM_Module, self).__init__()
-        self.chanel_in = in_dim
 
         if model == 'student':
             self.query_conv = Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
@@ -60,12 +59,14 @@ class PAM_Module(Module):
 
 class CAM_Module(Module):
     """ Channel attention module"""
-    def __init__(self, in_dim):
+    def __init__(self, model):
         super(CAM_Module, self).__init__()
-        self.chanel_in = in_dim
 
-
-        self.gamma = Parameter(torch.zeros(1))
+        if model == 'student':
+            self.gamma = Parameter(torch.zeros(1)).cuda()
+        else:
+            # self.gamma = Parameter(torch.zeros(1))
+            self.gamma = torch.ones(1).cuda()
         self.softmax  = Softmax(dim=-1)
     def forward(self,x):
         """
@@ -87,5 +88,25 @@ class CAM_Module(Module):
         out = out.view(m_batchsize, C, height, width)
 
         out = self.gamma*out + x
+        return out
+    
+
+class Self_Att(Module):
+    def __init__(self, in_dim, model = 'student'):
+        super(Self_Att, self).__init__()
+        self.PAM = PAM_Module(in_dim, model)
+        self.CAM = CAM_Module(model)
+
+        if model == 'student':
+            # self.gamma = Parameter(torch.zeros(1)).cuda()
+            self.conv_pam = Conv2d(in_channels=in_dim, out_channels=in_dim, kernel_size=1)
+            self.conv_cam = Conv2d(in_channels=in_dim, out_channels=in_dim, kernel_size=1)
+        else:
+            self.conv_pam = Identity()
+            self.conv_cam = Identity()
+
+    def forward(self, x):
+        out = self.conv_pam(self.PAM(x)) + self.conv_cam(self.CAM(x))
+
         return out
 
