@@ -39,15 +39,15 @@ class SegBaseModel(nn.Module):
         
         x = self.pretrained.conv1(x)
         x = self.pretrained.bn1(x)
-        x = self.pretrained.relu1(x)
+        x = self.pretrained.relu(x)
 
         x = self.pretrained.conv2(x)
         x = self.pretrained.bn2(x)
-        x = self.pretrained.relu2(x)
+        x = self.pretrained.relu(x)
 
         x = self.pretrained.conv3(x)
         x = self.pretrained.bn3(x)
-        x = self.pretrained.relu3(x)
+        x = self.pretrained.relu(x)
         x = self.pretrained.maxpool(x)
         
         c1 = self.pretrained.layer1(x)
