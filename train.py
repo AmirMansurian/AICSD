@@ -41,7 +41,7 @@ class Trainer(object):
                                             backbone='resnet18', 
                                             local_rank=None,
                                             pretrained=None, 
-                                            pretrained_base=True,
+                                            pretrained_base='resnet18-5c106cde.pth',
                                             aux=False, 
                                             norm_layer=nn.BatchNorm2d,
                                             num_class=self.nclass)#.to('cuda')
