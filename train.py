@@ -3,6 +3,7 @@ import os
 import numpy as np
 from tqdm import tqdm
 
+import torch.nn as nn
 from mypath import Path
 from dataloaders import make_data_loader
 from modeling.sync_batchnorm.replicate import patch_replication_callback
@@ -13,6 +14,8 @@ from utils.lr_scheduler import LR_Scheduler
 from utils.saver import Saver
 # from utils.summaries import TensorboardSummary
 from utils.metrics import Evaluator
+from models.model_zoo import get_segmentation_model
+
 
 class Trainer(object):
     def __init__(self, args):
@@ -27,17 +30,27 @@ class Trainer(object):
         self.train_loader, self.val_loader, self.test_loader, self.nclass = make_data_loader(args, **kwargs)
 
         # Define network
-        model = DeepLab(num_classes=self.nclass,
+        '''model = DeepLab(num_classes=self.nclass,
                         backbone=args.backbone,
                         output_stride=args.out_stride,
                         sync_bn=args.sync_bn,
-                        freeze_bn=args.freeze_bn)
+                        freeze_bn=args.freeze_bn)'''
+
+        # for PSPNet
+        model = get_segmentation_model(model='psp',
+                                            backbone='resnet18', 
+                                            local_rank=None,
+                                            pretrained=None, 
+                                            pretrained_base=True,
+                                            aux=False, 
+                                            norm_layer=nn.BatchNorm2d,
+                                            num_class=self.nclass)#.to('cuda')
 
         train_params = [{'params': model.get_1x_lr_params(), 'lr': args.lr},
                         {'params': model.get_10x_lr_params(), 'lr': args.lr * 10}]
 
         # Define Optimizer
-        optimizer = torch.optim.SGD(train_params, momentum=args.momentum,
+        optimizer = torch.optim.SGD(model.parameters(), momentum=args.momentum,
                                     weight_decay=args.weight_decay, nesterov=args.nesterov)
 
         # Define Criterion
