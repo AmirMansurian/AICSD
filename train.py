@@ -46,11 +46,11 @@ class Trainer(object):
                                             norm_layer=nn.BatchNorm2d,
                                             num_class=self.nclass)#.to('cuda')
 
-        #train_params = [{'params': model.get_1x_lr_params(), 'lr': args.lr},
+        train_params = [{'params': model.parameters(), 'lr': args.lr}]#,
                         #{'params': model.get_10x_lr_params(), 'lr': args.lr * 10}]
 
         # Define Optimizer
-        optimizer = torch.optim.SGD(model.parameters(), momentum=args.momentum,
+        optimizer = torch.optim.SGD(train_params, momentum=args.momentum,
                                     weight_decay=args.weight_decay, nesterov=args.nesterov)
 
         # Define Criterion
