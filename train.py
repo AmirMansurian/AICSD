@@ -42,7 +42,7 @@ class Trainer(object):
                                             local_rank=None,
                                             pretrained='None', 
                                             pretrained_base='None',
-                                            aux=False, 
+                                            aux=True, 
                                             norm_layer=nn.BatchNorm2d,
                                             num_class=self.nclass)#.to('cuda')
 
@@ -112,7 +112,6 @@ class Trainer(object):
             self.scheduler(self.optimizer, i, epoch, self.best_pred)
             self.optimizer.zero_grad()
             output = self.model(image)
-            print(output.shape)
             loss = self.criterion(output, target)
             loss.backward()
             self.optimizer.step()
