@@ -53,7 +53,7 @@ class PSPNet(SegBaseModel):
             auxout = self.auxlayer(c3)
             return [x, auxout, features]
         else:
-            return [x, features]
+            return x #[x, features]
 
 
 class _FCNHead(nn.Module):
