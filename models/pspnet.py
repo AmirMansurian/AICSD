@@ -94,7 +94,7 @@ class _PyramidPooling(nn.Module):
         self.conv4 = _PSP1x1Conv(in_channels, out_channels, **kwargs)
 
     def forward(self, x):
-        size = x.size()[2:]
+        size = [513, 513]
         feat1 = F.interpolate(self.conv1(self.avgpool1(x)), size, mode='bilinear', align_corners=True)
         feat2 = F.interpolate(self.conv2(self.avgpool2(x)), size, mode='bilinear', align_corners=True)
         feat3 = F.interpolate(self.conv3(self.avgpool3(x)), size, mode='bilinear', align_corners=True)
