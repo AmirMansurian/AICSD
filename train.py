@@ -40,7 +40,7 @@ class Trainer(object):
         model = get_segmentation_model(model='psp',
                                             backbone='resnet18', 
                                             local_rank=None,
-                                            pretrained=None, 
+                                            pretrained='None', 
                                             pretrained_base='resnet18-5c106cde.pth',
                                             aux=False, 
                                             norm_layer=nn.BatchNorm2d,
