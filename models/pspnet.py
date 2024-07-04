@@ -51,7 +51,7 @@ class PSPNet(SegBaseModel):
 
         if self.aux:
             auxout = self.auxlayer(c3)
-            return [x, auxout, features]
+            return x #[x, auxout, features]
         else:
             return x #[x, features]
 
