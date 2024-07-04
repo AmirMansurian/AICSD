@@ -205,7 +205,11 @@ def resnet18_v1b(pretrained=False, local_rank=None, **kwargs):
         if local_rank is not None:
             old_dict = torch.load(pretrained, map_location=torch.device(local_rank))
         else:
-            model.load_state_dict(model_zoo.load_url(model_urls['resnet18']))
+            old_dict = torch.load(pretrained)
+        model_dict = model.state_dict()
+        old_dict = {k: v for k, v in old_dict.items() if (k in model_dict)}
+        model_dict.update(old_dict)
+        model.load_state_dict(model_dict)
 
     return model
 
