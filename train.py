@@ -4,6 +4,7 @@ import numpy as np
 from tqdm import tqdm
 
 import torch.nn as nn
+import torch.nn.functional as F
 from mypath import Path
 from dataloaders import make_data_loader
 from modeling.sync_batchnorm.replicate import patch_replication_callback
@@ -143,6 +144,8 @@ class Trainer(object):
                 image, target = image.cuda(), target.cuda()
             with torch.no_grad():
                 output = self.model(image)
+            B, H, W = target.size()
+            pred = F.interpolate(pred, (H, W), mode='bilinear', align_corners=True)
             loss = self.criterion(output, target)
             test_loss += loss.item()
             tbar.set_description('Test loss: %.3f' % (test_loss / (i + 1)))
