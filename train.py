@@ -39,7 +39,7 @@ class Trainer(object):
 
         # for PSPNet
         model = get_segmentation_model(model='psp',
-                                            backbone='resnet18', 
+                                            backbone=args.backbone, 
                                             local_rank=None,
                                             pretrained='None', 
                                             pretrained_base='None',
