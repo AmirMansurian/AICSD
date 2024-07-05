@@ -113,6 +113,8 @@ class Trainer(object):
             self.scheduler(self.optimizer, i, epoch, self.best_pred)
             self.optimizer.zero_grad()
             output = self.model(image)
+            B, H, W = target.size()
+            output = F.interpolate(output, (H, W), mode='bilinear', align_corners=True)
             loss = self.criterion(output, target)
             loss.backward()
             self.optimizer.step()
@@ -288,7 +290,7 @@ def main():
     print('Starting Epoch:', trainer.args.start_epoch)
     print('Total Epoches:', trainer.args.epochs)
     for epoch in range(trainer.args.start_epoch, trainer.args.epochs):
-        #trainer.training(epoch)
+        trainer.training(epoch)
         if not trainer.args.no_val and epoch % args.eval_interval == (args.eval_interval - 1):
             trainer.validation(epoch)
 
