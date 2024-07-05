@@ -145,7 +145,7 @@ class Trainer(object):
             with torch.no_grad():
                 output = self.model(image)
             B, H, W = target.size()
-            pred = F.interpolate(pred, (H, W), mode='bilinear', align_corners=True)
+            output = F.interpolate(output, (H, W), mode='bilinear', align_corners=True)
             loss = self.criterion(output, target)
             test_loss += loss.item()
             tbar.set_description('Test loss: %.3f' % (test_loss / (i + 1)))
