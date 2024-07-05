@@ -46,7 +46,10 @@ class Trainer(object):
                                             aux=True, 
                                             norm_layer=nn.BatchNorm2d,
                                             num_class=self.nclass)#.to('cuda')
-
+        
+        print('the number of model parameters: {}'.format(
+            sum([p.data.nelement() for p in model.parameters()])))
+        
         train_params = [{'params': model.parameters(), 'lr': args.lr}]#,
                         #{'params': model.get_10x_lr_params(), 'lr': args.lr * 10}]
 
