@@ -21,7 +21,7 @@ class SegBaseModel(nn.Module):
         self.nclass = nclass
         self.backbone = backbone
         if backbone == 'resnet18':
-            self.pretrained = resnet50_v1b(pretrained=pretrained_base, dilated=True, local_rank=local_rank, **kwargs)
+            self.pretrained = resnet18_v1b(pretrained=pretrained_base, dilated=True, local_rank=local_rank, **kwargs)
         elif backbone == 'resnet50':
             self.pretrained = resnet50_v1b(pretrained=pretrained_base, local_rank=local_rank, dilated=True, **kwargs)
         elif backbone == 'resnet101':
@@ -37,7 +37,7 @@ class SegBaseModel(nn.Module):
             self.pretrained = resnet101_v1s(pretrained=pretrained_base, local_rank=local_rank, dilated=True, **kwargs)
         
         elif backbone == 'resnet18_original':
-            self.pretrained = resnet50_v1b(pretrained=pretrained_base, dilated=True, local_rank=local_rank, **kwargs)
+            self.pretrained = resnet18_v1b(pretrained=pretrained_base, dilated=True, local_rank=local_rank, **kwargs)
         elif backbone == 'resnet50_original':
             self.pretrained = resnet50_v1b(pretrained=pretrained_base, local_rank=local_rank, dilated=True, **kwargs)
         elif backbone == 'resnet101_original':
