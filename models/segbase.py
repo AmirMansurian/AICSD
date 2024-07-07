@@ -21,6 +21,13 @@ class SegBaseModel(nn.Module):
         self.nclass = nclass
         self.backbone = backbone
         if backbone == 'resnet18':
+            self.pretrained = resnet50_v1b(pretrained=pretrained_base, dilated=True, local_rank=local_rank, **kwargs)
+        elif backbone == 'resnet50':
+            self.pretrained = resnet50_v1b(pretrained=pretrained_base, local_rank=local_rank, dilated=True, **kwargs)
+        elif backbone == 'resnet101':
+            self.pretrained = resnet101_v1b(pretrained=pretrained_base, local_rank=local_rank, dilated=True, **kwargs)
+        
+        '''if backbone == 'resnet18':
             self.pretrained = resnet18_v1s(pretrained=pretrained_base, dilated=True, local_rank=local_rank, **kwargs)
         elif backbone == 'resnet50':
             self.pretrained = resnet50_v1s(pretrained=pretrained_base, local_rank=local_rank, dilated=True, **kwargs)
@@ -32,7 +39,7 @@ class SegBaseModel(nn.Module):
         elif backbone == 'resnet50_original':
             self.pretrained = resnet50_v1b(pretrained=pretrained_base, local_rank=local_rank, dilated=True, **kwargs)
         elif backbone == 'resnet101_original':
-            self.pretrained = resnet101_v1b(pretrained=pretrained_base, local_rank=local_rank, dilated=True, **kwargs)
+            self.pretrained = resnet101_v1b(pretrained=pretrained_base, local_rank=local_rank, dilated=True, **kwargs)'''
 
         else:
             raise RuntimeError('unknown backbone: {}'.format(backbone))
