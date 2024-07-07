@@ -26,6 +26,8 @@ class SegBaseModel(nn.Module):
             self.pretrained = resnet50_v1b(pretrained=pretrained_base, local_rank=local_rank, dilated=True, **kwargs)
         elif backbone == 'resnet101':
             self.pretrained = resnet101_v1b(pretrained=pretrained_base, local_rank=local_rank, dilated=True, **kwargs)
+        else:
+            raise RuntimeError('unknown backbone: {}'.format(backbone))
         
         '''if backbone == 'resnet18':
             self.pretrained = resnet18_v1s(pretrained=pretrained_base, dilated=True, local_rank=local_rank, **kwargs)
@@ -41,8 +43,6 @@ class SegBaseModel(nn.Module):
         elif backbone == 'resnet101_original':
             self.pretrained = resnet101_v1b(pretrained=pretrained_base, local_rank=local_rank, dilated=True, **kwargs)'''
 
-        else:
-            raise RuntimeError('unknown backbone: {}'.format(backbone))
 
     def base_forward(self, x):
         """forwarding pre-trained network"""
