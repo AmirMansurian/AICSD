@@ -42,7 +42,7 @@ class Trainer(object):
                                             backbone=args.backbone, 
                                             local_rank=None,
                                             pretrained='None', 
-                                            pretrained_base='None',
+                                            pretrained_base='True',
                                             aux=True, 
                                             norm_layer=nn.BatchNorm2d,
                                             num_class=self.nclass)#.to('cuda')
