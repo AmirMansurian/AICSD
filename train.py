@@ -283,7 +283,8 @@ def main():
             'pascal': 0.007,
         }
         args.lr = lrs[args.dataset.lower()] / (6 * len(args.gpu_ids)) * args.batch_size
-
+    print('#########################')
+    print(args.batch_size)
 
     if args.checkname is None:
         args.checkname = 'deeplab-'+str(args.backbone)
