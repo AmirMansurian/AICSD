@@ -47,7 +47,7 @@ class SegBaseModel(nn.Module):
     def base_forward(self, x):
         """forwarding pre-trained network"""
         
-        if self.backbone.split('_')[-1] == 'original':
+        if self.backbone.split('_')[-1] == 'original' or True:
             x = self.pretrained.conv1(x)
             x = self.pretrained.bn1(x)
             x = self.pretrained.relu(x)
