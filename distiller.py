@@ -5,6 +5,7 @@ from scipy.stats import norm
 import numpy as np
 from cbam import *
 from da_att import *
+from Ema_att.EMA import *
 import scipy
 
 import math
@@ -53,14 +54,23 @@ class Distiller(nn.Module):
         s_channels = s_net.get_channel_num()
 
 
+
+        # Skip the layers of encoder (Here is Resnet)
         self.start_layer = 3
-        self.end_layer = 4
+        self.end_layer = len(t_channels)
+
+        
+        # Number of groups for emma attention module
+        ema_factor = 32
 
 
         self.Connectors = nn.ModuleList([build_feature_connector(t, s) for t, s in zip(t_channels, s_channels)])
 
         # self.cbam_attns = nn.ModuleList([CBAM(s_channels[i], model = 'student').cuda() for i in range(3, len(s_channels))])
+
         self.self_attns = nn.ModuleList([PAM_Module(s_channels[i], model = 'student').cuda() for i in range(self.start_layer, self.end_layer)])
+
+        self.ema_attns = nn.ModuleList([EMA(s_channels[i], model = 'student').cuda() for i in range(self.start_layer, self.end_layer)])
 
         teacher_bns = t_net.get_bn_before_relu()
         margins = [get_margin_from_BN(bn) for bn in teacher_bns]
@@ -112,6 +122,21 @@ class Distiller(nn.Module):
                 
 
                 cbam_loss += torch.norm(s_feats_cbam - t_feats_cbam, dim = 1).sum() / M * self.args.cbam_lambda
+
+        ema_loss = 0 
+
+        if self.args.ema_lambda is not None: # EMA loss
+            for i in range(self.start_layer, self.end_layer):
+                b,c,h,w = t_feats[i].shape
+                M = h * w
+
+                # s_feats[i] = self.ema_attns[i](s_feats[i])
+
+                s_feats_att = self.Connectors[i](self.ema_attns[i - self.start_layer](s_feats[i])).view(b, c, -1)
+
+                t_feats_att = EMA(t_feats[i].shape[1], model = 'teacher').cuda()(t_feats[i]).view(b, c, -1).detach()
+
+                ema_loss += torch.norm(s_feats_att - t_feats_att, dim = 1).sum() / M * self.args.ema_lambda
         
 
         self_att_loss = 0
@@ -178,7 +203,7 @@ class Distiller(nn.Module):
                 naive_loss += (s_feats[i] - t_feats[i]).pow(2).sum() / (h * w * c* b) * self.args.naive_lambda
 
 
-        return s_out, kd_loss , lad_loss , pad_loss , cad_loss , naive_loss, cbam_loss, self_att_loss
+        return s_out, kd_loss , lad_loss , pad_loss , cad_loss , naive_loss, cbam_loss, self_att_loss, ema_loss
 
     
 
@@ -187,3 +212,6 @@ class Distiller(nn.Module):
     
     def get_attn_modules(self):
         return self.self_attns
+    
+    def get_ema_modules(self):
+        return self.ema_attns

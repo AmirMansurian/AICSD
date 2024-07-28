@@ -28,6 +28,7 @@ class DeepLab(nn.Module):
         if self.is_student:
             self.cbam_modules = None
             self.attn_modules = None
+            self.ema_modules = None
 
         if freeze_bn:
             self.freeze_bn()
@@ -97,6 +98,9 @@ class DeepLab(nn.Module):
 
     def set_attn_modules(self, attn_modules):
         self.attn_modules = attn_modules
+
+    def set_ema_modules(self, ema_modules):
+        self.ema_modules = ema_modules
     
     def extract_cbam_features(self, input):
         feats, _ = self.extract_feature(input)
