@@ -33,7 +33,8 @@ class Trainer(object):
                              output_stride=args.out_stride,
                              sync_bn=args.sync_bn,
                              freeze_bn=args.freeze_bn,
-                             is_student = False)
+                             is_student = False,
+                             att_type=args.att_type)
         checkpoint = torch.load('pretrained/deeplab-resnet.pth.tar')
         self.t_net.load_state_dict(checkpoint['state_dict'])
 
@@ -41,7 +42,8 @@ class Trainer(object):
                              backbone=args.backbone,
                              output_stride=args.out_stride,
                              sync_bn=args.sync_bn,
-                             freeze_bn=args.freeze_bn)
+                             freeze_bn=args.freeze_bn,
+                             att_type=args.att_type)
         self.d_net = distiller.Distiller(self.t_net, self.s_net, self.args)
 
         print('Teacher Net: ')
@@ -59,12 +61,16 @@ class Trainer(object):
         distill_params = [{'params': self.s_net.get_1x_lr_params(), 'lr': args.lr},
                           {'params': self.s_net.get_10x_lr_params(), 'lr': args.lr * 10},
                           {'params': self.d_net.Connectors.parameters(), 'lr': args.lr * 10},
+                          {'params': self.d_net.attns.parameters(), 'lr': args.lr * 10}]
                         #   {'params': self.d_net.self_attns.parameters(), 'lr': args.lr * 10},
-                        {'params': self.d_net.ema_attns.parameters(), 'lr': args.lr * 10},]
+                        #   {'params': self.d_net.cbam_attns.parameters(), 'lr': args.lr * 10},
+                        # {'params': self.d_net.ema_attns.parameters(), 'lr': args.lr * 10},]
 
         init_params = [{'params': self.d_net.Connectors.parameters(), 'lr': args.lr * 10},
-                    #    {'params': self.d_net.self_attns.parameters(), 'lr': args.lr * 10}]
-                    {'params': self.d_net.ema_attns.parameters(), 'lr': args.lr * 10}]
+                    {'params': self.d_net.attns.parameters(), 'lr': args.lr * 10}]
+                    #    {'params': self.d_net.self_attns.parameters(), 'lr': args.lr * 10},
+                    # {'params': self.d_net.cbam_attns.parameters(), 'lr': args.lr * 10},
+                    # {'params': self.d_net.ema_attns.parameters(), 'lr': args.lr * 10}]
 
         # # Define Optimizer
         self.optimizer = torch.optim.SGD(distill_params, momentum=args.momentum,
@@ -124,11 +130,11 @@ class Trainer(object):
             self.scheduler(optimizer, i, epoch, self.best_pred)
             optimizer.zero_grad()
 
-            output, kd_loss, lad_loss, pad_loss, cad_loss, naive_loss, cbam_loss, self_loss, emma_loss = self.d_net(image, target)
+            output, kd_loss, lad_loss, pad_loss, cad_loss, naive_loss, attn_loss = self.d_net(image, target)
 
             loss_seg = self.criterion(output, target)
 
-            loss = loss_seg + naive_loss + kd_loss + lad_loss + pad_loss + cad_loss + cbam_loss + self_loss + emma_loss
+            loss = loss_seg + naive_loss + kd_loss + lad_loss + pad_loss + cad_loss + attn_loss
 
             loss.backward()
             optimizer.step()
@@ -140,8 +146,8 @@ class Trainer(object):
 
         # print('Losses: seg: {}, kd: {}, lad: {}, pad: {}, cad: {}, naive: {}, cbam: {}'.format(loss_seg, kd_loss, lad_loss, pad_loss, cad_loss, naive_loss, cbam_loss))
 
-        print('Losses: seg: {}, kd: {}, lad: {}, pad: {}, cad: {}, naive: {}, cbam: {}, self: {}, emma: {}'
-              .format(loss_seg, kd_loss, lad_loss, pad_loss, cad_loss, naive_loss, cbam_loss, self_loss, emma_loss))
+        print('Losses: seg: {}, kd: {}, lad: {}, pad: {}, cad: {}, naive: {}, attn: {}'
+              .format(loss_seg, kd_loss, lad_loss, pad_loss, cad_loss, naive_loss, attn_loss))
         if self.args.no_val:
             # save checkpoint every epoch
             is_best = False
@@ -187,7 +193,9 @@ class Trainer(object):
 
             # self.s_net.module.set_cbam_modules(self.d_net.module.get_cbam_modules())
             # self.s_net.module.set_attn_modules(self.d_net.module.get_attn_modules())
-            self.s_net.module.set_ema_modules(self.d_net.module.get_ema_modules())
+            # self.s_net.module.set_ema_modules(self.d_net.module.get_ema_modules())
+
+            self.s_net.module.set_attn_modules(self.d_net.module.get_attn_modules())
 
             is_best = True
             self.best_pred = new_pred
@@ -286,6 +294,14 @@ def main():
                         help = 'coefficient for self attention loss')
     parser.add_argument('--ema_lambda', type = float, default = None,
                         help = 'coefficient for ema loss')
+    
+    parser.add_argument('--att_type', type = str, default = 'cbam',
+                        help = 'type of attention module')
+
+    parser.add_argument('--att_lambda', type = float, default = None,
+                        help = 'coefficient for attention loss')
+    
+
 
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
