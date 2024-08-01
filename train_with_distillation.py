@@ -62,15 +62,9 @@ class Trainer(object):
                           {'params': self.s_net.get_10x_lr_params(), 'lr': args.lr * 10},
                           {'params': self.d_net.Connectors.parameters(), 'lr': args.lr * 10},
                           {'params': self.d_net.attns.parameters(), 'lr': args.lr * 10}]
-                        #   {'params': self.d_net.self_attns.parameters(), 'lr': args.lr * 10},
-                        #   {'params': self.d_net.cbam_attns.parameters(), 'lr': args.lr * 10},
-                        # {'params': self.d_net.ema_attns.parameters(), 'lr': args.lr * 10},]
 
         init_params = [{'params': self.d_net.Connectors.parameters(), 'lr': args.lr * 10},
                     {'params': self.d_net.attns.parameters(), 'lr': args.lr * 10}]
-                    #    {'params': self.d_net.self_attns.parameters(), 'lr': args.lr * 10},
-                    # {'params': self.d_net.cbam_attns.parameters(), 'lr': args.lr * 10},
-                    # {'params': self.d_net.ema_attns.parameters(), 'lr': args.lr * 10}]
 
         # # Define Optimizer
         self.optimizer = torch.optim.SGD(distill_params, momentum=args.momentum,
@@ -144,8 +138,6 @@ class Trainer(object):
         print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
         print('Loss: %.3f' % train_loss)
 
-        # print('Losses: seg: {}, kd: {}, lad: {}, pad: {}, cad: {}, naive: {}, cbam: {}'.format(loss_seg, kd_loss, lad_loss, pad_loss, cad_loss, naive_loss, cbam_loss))
-
         print('Losses: seg: {}, kd: {}, lad: {}, pad: {}, cad: {}, naive: {}, attn: {}'
               .format(loss_seg, kd_loss, lad_loss, pad_loss, cad_loss, naive_loss, attn_loss))
         if self.args.no_val:
@@ -190,10 +182,6 @@ class Trainer(object):
 
         new_pred = mIoU
         if new_pred > self.best_pred:
-
-            # self.s_net.module.set_cbam_modules(self.d_net.module.get_cbam_modules())
-            # self.s_net.module.set_attn_modules(self.d_net.module.get_attn_modules())
-            # self.s_net.module.set_ema_modules(self.d_net.module.get_ema_modules())
 
             self.s_net.module.set_attn_modules(self.d_net.module.get_attn_modules())
 
@@ -280,24 +268,19 @@ def main():
     # loss coefficients
     parser.add_argument('--naive_lambda', type=float, default=None,
                         help='coefficient for naive loss')
+    
     parser.add_argument('--kd_lambda', type = float, default = None,
                         help = 'coefficient for kd loss')
+    
     parser.add_argument('--lad_lambda', type = float, default = None,
                         help = 'coefficient for lad loss')
+    
     parser.add_argument('--pad_lambda', type = float, default = None,
                         help = 'coefficient for pad loss')
-    parser.add_argument('--cad_lambda', type = float, default = None,
-                        help = 'coefficient for cad loss')
-    parser.add_argument('--cbam_lambda', type = float, default = None,
-                        help = 'coefficient for cbam loss')
-    parser.add_argument('--self_att', type = float, default = None,
-                        help = 'coefficient for self attention loss')
-    parser.add_argument('--ema_lambda', type = float, default = None,
-                        help = 'coefficient for ema loss')
     
     parser.add_argument('--att_type', type = str, default = 'cbam',
                         help = 'type of attention module')
-
+    
     parser.add_argument('--att_lambda', type = float, default = None,
                         help = 'coefficient for attention loss')
     

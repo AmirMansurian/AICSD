@@ -4,15 +4,9 @@ import torch.nn.functional as F
 from scipy.stats import norm
 import numpy as np
 
-from att_modules.cbam import CBAM
-from att_modules.da_att import Self_Att
-from att_modules.ema import EMA
-from att_modules.bam import BAM
 from att_modules.attn_types import attn_types
 
-
 import scipy
-
 import math
 
 def distillation_loss(source, target, margin):
@@ -59,35 +53,12 @@ class Distiller(nn.Module):
         t_channels = t_net.get_channel_num()
         s_channels = s_net.get_channel_num()
 
-
-
-        # Skip the layers of encoder (Here is Resnet)
         self.start_layer = 3
         self.end_layer = len(t_channels)
 
-        # self.attn_types = {
-        #     'cbam': CBAM,
-        #     'self': Self_Att,
-        #     'ema': EMA,
-        #     'bam': BAM
-        # }
-
-        
-        # Number of groups for emma attention module
         ema_factor = 32
 
-
         self.Connectors = nn.ModuleList([build_feature_connector(t, s) for t, s in zip(t_channels, s_channels)])
-
-        # self.cbam_attns = nn.ModuleList([CBAM(s_channels[i], model = 'student').cuda() for i in range(3, len(s_channels))])
-
-        # self.self_attns = nn.ModuleList([PAM_Module(s_channels[i], model = 'student').cuda() for i in range(self.start_layer, self.end_layer)])
-
-        # self.ema_attns = nn.ModuleList([EMA(s_channels[i], model = 'student').cuda() for i in range(self.start_layer, self.end_layer)])
-
-
-        # self.attns = nn.ModuleList(build_attention(s_channels, self.start_layer, args.att_type))
-
 
         self.attns = [attn_types[args.att_type](s_channels[i], model = 'student').cuda() 
                       for i in range(self.start_layer, len(s_channels))]
@@ -123,66 +94,14 @@ class Distiller(nn.Module):
             return loss_distill
         
 
-        # cbam_loss = 0
-
-        # if self.args.cbam_lambda is not None: # CBAM loss
-            
-        #     for i in range(self.start_layer, self.end_layer):
-        #         b,c,h,w = t_feats[i].shape
-        #         M = h * w
-
-        #         s_feats_cbam = self.Connectors[i](self.cbam_attns[i-self.start_layer](s_feats[i])).view(b, c, -1)
-        #         t_feats_cbam = CBAM(t_feats[i].shape[1], model = 'teacher').cuda()(t_feats[i]).view(b, c, -1).detach()
-
-        #         s_feats_cbam = torch.nn.functional.normalize(s_feats_cbam, dim=1)
-        #         t_feats_cbam = torch.nn.functional.normalize(t_feats_cbam, dim=1)
-
-        #         cbam_loss += torch.norm(s_feats_cbam - t_feats_cbam, dim = 1).sum() / M * self.args.cbam_lambda
-
-        # ema_loss = 0 
-
-        # if self.args.ema_lambda is not None: # EMA loss
-        #     for i in range(self.start_layer, self.end_layer):
-        #         b,c,h,w = t_feats[i].shape
-        #         M = h * w
-
-        #         s_feats_att = self.Connectors[i](self.ema_attns[i - self.start_layer](s_feats[i])).view(b, c, -1)
-        #         t_feats_att = EMA(t_feats[i].shape[1], model = 'teacher').cuda()(t_feats[i]).view(b, c, -1).detach()
-
-        #         s_feats_att = torch.nn.functional.normalize(s_feats_att, dim=1)
-        #         t_feats_att = torch.nn.functional.normalize(t_feats_att, dim=1)
-
-        #         ema_loss += torch.norm(s_feats_att - t_feats_att, dim = 1).sum() / M * self.args.ema_lambda
-        
-
-        # self_att_loss = 0
-
-        # if self.args.self_att is not None: # Self attention loss
-        #     for i in range(self.start_layer, self.end_layer):
-        #         b,c,h,w = t_feats[i].shape
-        #         M = h * w
-
-        #         s_feats_self = self.Connectors[i](self.self_attns[i - self.start_layer](s_feats[i])).view(b, c, -1)
-
-        #         t_feats_self = PAM_Module(t_feats[i].shape[1], model = 'teacher').cuda()(t_feats[i]).view(b, c, -1).detach()
-
-        #         self_att_loss += torch.norm(s_feats_self - t_feats_self, dim = 1).sum() / M * self.args.self_att
-
-        # Let's do it at the beginning
-        # for i in range(feat_num):
-            # s_feats[i] = self.Connectors[i](s_feats[i])
-
         attn_loss = 0
 
-        if self.args.att_lambda is not None: # Attention loss
+        if self.args.att_lambda is not None:
             for i in range(self.start_layer, self.end_layer):
                 b,c,h,w = t_feats[i].shape
                 M = h * w
 
                 s_feats_att = self.Connectors[i](self.attns[i - self.start_layer](s_feats[i])).view(b, c, -1)
-                # t_feats_att = self.attns[i - self.start_layer](t_feats[i].shape[1], model = 'teacher').cuda()
-                # (t_feats[i]).view(b, c, -1).detach()
-
                 t_feats_att = attn_types[self.args.att_type](t_feats[i].shape[1], model = 'teacher').cuda()(t_feats[i]).view(b, c, -1).detach()
 
                 s_feats_att = torch.nn.functional.normalize(s_feats_att, dim=1)
@@ -193,14 +112,14 @@ class Distiller(nn.Module):
 
         kd_loss = 0
 
-        if self.args.kd_lambda is not None: # Kd loss
+        if self.args.kd_lambda is not None:
           kd_loss = self.args.kd_lambda * torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), 
                                                                 F.softmax(t_out / self.temperature, dim=1))
           
         
         lad_loss = 0
 
-        if self.args.lad_lambda is not None: # LAD loss
+        if self.args.lad_lambda is not None:
             for i in range(3, feat_num):
                 b,c,h,w = t_feats[i].shape
 
@@ -208,7 +127,7 @@ class Distiller(nn.Module):
 
         pad_loss = 0
 
-        if self.args.pad_lambda is not None: # PAD loss
+        if self.args.pad_lambda is not None:
             for i in range(3, feat_num):
                 b,c,h,w = t_feats[i].shape
 
@@ -218,7 +137,7 @@ class Distiller(nn.Module):
 
         cad_loss = 0
 
-        if self.args.cad_lambda is not None: # CAD loss
+        if self.args.cad_lambda is not None:
             for i in range(3, feat_num):
                 b,c,h,w = t_feats[i].shape
 
@@ -237,20 +156,9 @@ class Distiller(nn.Module):
                 naive_loss += (s_feats[i] - t_feats[i]).pow(2).sum() / (h * w * c* b) * self.args.naive_lambda
 
 
-        # return s_out, kd_loss , lad_loss , pad_loss , cad_loss , naive_loss, cbam_loss, self_att_loss, ema_loss
-
         return s_out, kd_loss , lad_loss , pad_loss , cad_loss , naive_loss, attn_loss
 
     
-
-    # def get_cbam_modules(self):
-    #     return self.cbam_attns
-    
-    # def get_attn_modules(self):
-    #     return self.self_attns
-    
-    # def get_ema_modules(self):
-    #     return self.ema_attns
 
     def get_attn_modules(self):
         return self.attns
