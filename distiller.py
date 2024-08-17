@@ -6,14 +6,8 @@ import numpy as np
 
 from att_modules.attn_types import attn_types
 
-import scipy
 import math
 
-def distillation_loss(source, target, margin):
-    target = torch.max(target, margin)
-    loss = torch.nn.functional.mse_loss(source, target, reduction="none")
-    loss = loss * ((source > target) | (target > 0)).float()
-    return loss.sum()
 
 def build_feature_connector(t_channel, s_channel):
     C = [nn.Conv2d(s_channel, t_channel, kernel_size=1, stride=1, padding=0, bias=False),
@@ -53,11 +47,14 @@ class Distiller(nn.Module):
         t_channels = t_net.get_channel_num()
         s_channels = s_net.get_channel_num()
 
+
+        # We ignore the intermediate feature maps from the encoder (first 3 layers).
         self.start_layer = 3
         self.end_layer = len(t_channels)
 
         ema_factor = 32
 
+        # Mapping modules transform student feature maps into the teacher's feature space.
         self.Connectors = nn.ModuleList([build_feature_connector(t, s) for t, s in zip(t_channels, s_channels)])
 
         self.attns = [attn_types[args.att_type](s_channels[i], model = 'student').cuda() 
@@ -74,9 +71,6 @@ class Distiller(nn.Module):
         self.s_net = s_net
         self.args = args
 
-        self.temperature = 1.0
-
-        self.loss_divider = [8, 4, 2, 1, 1, 4*4]
 
     def forward(self, x, y):
 
@@ -84,15 +78,6 @@ class Distiller(nn.Module):
         s_feats, s_out = self.s_net.extract_feature(x)
         feat_num = len(t_feats)
 
-
-        def overhaul():
-            loss_distill = 0
-            for i in range(feat_num):
-                s_feats[i] = self.Connectors[i](s_feats[i])
-                loss_distill += distillation_loss(s_feats[i], t_feats[i].detach(), getattr(self, 'margin%d' % (i+1))) \
-                                / self.loss_divider[i]
-            return loss_distill
-        
 
         attn_loss = 0
 
@@ -102,6 +87,9 @@ class Distiller(nn.Module):
                 M = h * w
 
                 s_feats_att = self.Connectors[i](self.attns[i - self.start_layer](s_feats[i])).view(b, c, -1)
+
+                # Attention loss for different modules; teacher's modules are fixed and not trained.
+                # Each module differs slightly between the teacher and student models to account for unlearnable parameters.
                 t_feats_att = attn_types[self.args.att_type](t_feats[i].shape[1], model = 'teacher').cuda()(t_feats[i]).view(b, c, -1).detach()
 
                 s_feats_att = torch.nn.functional.normalize(s_feats_att, dim=1)
@@ -109,22 +97,24 @@ class Distiller(nn.Module):
 
                 attn_loss += torch.norm(s_feats_att - t_feats_att, dim = 1).sum() / M * self.args.att_lambda
         
-
+        # Naive KD loss
         kd_loss = 0
 
         if self.args.kd_lambda is not None:
           kd_loss = self.args.kd_lambda * torch.nn.KLDivLoss()(F.log_softmax(s_out / self.temperature, dim=1), 
                                                                 F.softmax(t_out / self.temperature, dim=1))
           
-        
+        # Lad loss in https://ieeexplore.ieee.org/document/10484265/
         lad_loss = 0
 
         if self.args.lad_lambda is not None:
             for i in range(3, feat_num):
                 b,c,h,w = t_feats[i].shape
 
-                lad_loss += (s_feats[i] / torch.norm(s_feats[i], p = 2) - t_feats[i] / torch.norm(t_feats[i], p = 2)).pow(2).sum() / (b) * self.args.lad_lambda
+                lad_loss += (s_feats[i] / torch.norm(s_feats[i], p = 2) - t_feats[i] / torch.norm(t_feats[i], p = 2)).pow(2).sum() \
+                    / (b) * self.args.lad_lambda
 
+        # Pad loss in https://ieeexplore.ieee.org/document/10484265/
         pad_loss = 0
 
         if self.args.pad_lambda is not None:
@@ -132,9 +122,9 @@ class Distiller(nn.Module):
                 b,c,h,w = t_feats[i].shape
 
                 pad_loss += (F.normalize(s_feats[i], p = 2, dim = 1) - F.normalize(t_feats[i], p = 2, dim = 1)).pow(2).sum() \
-                / (h * w * b) * self.args.pad_lambda
+                    / (h * w * b) * self.args.pad_lambda
 
-
+        # Cad loss in https://ieeexplore.ieee.org/document/10484265/
         cad_loss = 0
 
         if self.args.cad_lambda is not None:
@@ -142,8 +132,9 @@ class Distiller(nn.Module):
                 b,c,h,w = t_feats[i].shape
 
                 cad_loss += (F.normalize(s_feats[i], p = 2, dim = (2,3)) - F.normalize(t_feats[i], p = 2, dim = (2,3))).pow(2).sum() \
-                / (c * b) * self.args.cad_lambda
+                    / (c * b) * self.args.cad_lambda
 
+        # Naive loss in https://ieeexplore.ieee.org/document/10484265/
         naive_loss = 0
 
         if self.args.naive_lambda is not None:
@@ -159,6 +150,6 @@ class Distiller(nn.Module):
         return s_out, kd_loss , lad_loss , pad_loss , cad_loss , naive_loss, attn_loss
 
     
-
+    # Used for feature attention maps after training
     def get_attn_modules(self):
         return self.attns

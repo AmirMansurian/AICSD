@@ -66,7 +66,7 @@ class Trainer(object):
         init_params = [{'params': self.d_net.Connectors.parameters(), 'lr': args.lr * 10},
                     {'params': self.d_net.attns.parameters(), 'lr': args.lr * 10}]
 
-        # # Define Optimizer
+        # Define Optimizer
         self.optimizer = torch.optim.SGD(distill_params, momentum=args.momentum,
                                          weight_decay=args.weight_decay, nesterov=args.nesterov)
         self.init_optimizer = torch.optim.SGD(init_params, momentum=args.momentum,
@@ -91,7 +91,7 @@ class Trainer(object):
         self.scheduler = LR_Scheduler(args.lr_scheduler, args.lr,
                                             args.epochs, len(self.train_loader))
 
-        # Using cuda
+        # Enable multi-GPU usage if CUDA is available
         if args.cuda:
             self.s_net = torch.nn.DataParallel(self.s_net).cuda()
             self.d_net = torch.nn.DataParallel(self.d_net).cuda()
