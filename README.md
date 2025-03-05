@@ -1,4 +1,8 @@
 ## Adaptive Inter-Class Similarity Distillation for Semantic Segmentation 
+[![arXiv](https://img.shields.io/badge/arXiv-2308.04243-<COLOR>.svg)](https://arxiv.org/abs/2503.6245369)
+![Stars](https://img.shields.io/github/stars/AmirMansurian/AICSD?style=social)
+![Forks](https://img.shields.io/github/forks/AmirMansurian/AICSD?style=social)
+
  This repository contains the source code of AICSD [(Adaptive Inter-Class Similarity Distillation for Semantic Segmentation )](https://arxiv.org/abs/2308.04243).
 
 <p align="center">
