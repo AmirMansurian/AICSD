@@ -73,7 +73,7 @@ Download following pre-trained teacher network and put it into ```pretrained/```
  measure performance on **test** set with [Pascal VOC evaluation server](http://host.robots.ox.ac.uk/pascal/VOC/).
  
  ## Citation
-If you use this repository for your research or wish to refer to our distillation method, please use the following BibTeX entry:
+If you use this repository for your research or wish to refer to our distillation method, please use the following BibTeX entries:
 ```bibtex
 @article{mansourian2025aicsd,
   title={AICSD: Adaptive inter-class similarity distillation for semantic segmentation},
@@ -82,6 +82,20 @@ If you use this repository for your research or wish to refer to our distillatio
   pages={1--20},
   year={2025},
   publisher={Springer}
+}
+
+@article{mansourian2025comprehensive,
+  title={A Comprehensive Survey on Knowledge Distillation},
+  author={Mansourian, Amir M and Ahmadi, Rozhan and Ghafouri, Masoud and Babaei, Amir Mohammad and Golezani, Elaheh Badali and Ghamchi, Zeynab Yasamani and Ramezanian, Vida and Taherian, Alireza and Dinashi, Kimia and Miri, Amirali and Kasaei, Shohreh},
+  journal={arXiv preprint arXiv:2503.12067},
+  year={2025}
+}
+
+@article{mansourian2024attention,
+  title={Attention-guided feature distillation for semantic segmentation},
+  author={Mansourian, Amir M and Jalali, Arya and Ahmadi, Rozhan and Kasaei, Shohreh},
+  journal={arXiv preprint arXiv:2403.05451},
+  year={2024}
 }
 ```
 
