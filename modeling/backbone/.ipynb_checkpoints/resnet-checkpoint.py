@@ -4,7 +4,6 @@ import torch.utils.model_zoo as model_zoo
 from modeling.sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
 import torch.nn.functional as F
 from cbam import *
-from spectral import *
 
 class BasicBlock(nn.Module):
     expansion = 1
@@ -112,10 +111,8 @@ class ResNet(nn.Module):
         
         if layers[-1] == 2:
             self.cbam = CBAM(512)
-            # self.spectral = MultiSpectralAttentionLayer(512, 33, 33)
         else:
             self.cbam = CBAM(2048)
-            # self.spectral = MultiSpectralAttentionLayer(2048, 33, 33)
         self._init_weight()
         
         
@@ -209,7 +206,6 @@ class ResNet(nn.Module):
         feat3 = self.layer3(feat2)
         feat4 = self.layer4(feat3)
         atten = self.cbam(feat4)
-        # atten = self.spectral(feat4)
         out = F.relu(feat4)
         
         

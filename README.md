@@ -1,75 +1,97 @@
-## Segmentation - Pascal VOC
+## Feature Distillation 
+[![arXiv](https://img.shields.io/badge/arXiv-2403.05451-<COLOR>.svg)](https://arxiv.org/abs/2403.05451)
+![Stars](https://img.shields.io/github/stars/AmirMansurian/AttnFD?style=social)
+![Forks](https://img.shields.io/github/forks/AmirMansurian/AttnFD?style=social)
 
-Our segmentation code is based on [pytorch-deeplab-xception](https://github.com/jfzhang95/pytorch-deeplab-xception).
+The source code of [(Attention-guided Feature Distillation for Semantic Segmentation)](https://arxiv.org/abs/2403.05451).
+ 
+ Also, see our previous work [(Adaptive Inter-Class Similarity Distillation for Semantic Segmentation)](https://github.com/AmirMansurian/AICSD).
 
-### Additional requirements
+<p align="center">
+ <img src="https://raw.githubusercontent.com/AmirMansurian/AttnFD/main/Images/diagram.png"  width="600" height="300"/>
+</p>
 
+### Requirements
+
+- Python3
+- PyTorch (> 0.4.1)
+- torchvision
+- numpy
+- scipy
 - tqdm
 - matplotlib 
 - pillow
 
-### Settings
+### Datasets and Models
+- Datasets: [[PascalVoc]](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/) [[Cityscapes]](https://www.cityscapes-dataset.com/)
+- Teacher model: [[ResNet101-DeepLabV3+]](https://drive.google.com/file/d/1_TM1p38Ev-e-P68YUQGMo7YpkK_-AUFq/view?usp=sharing)
 
-|   Teacher  |  Student  | Teacher size | Student size | Size ratio |
-|:----------:|:---------:|:------------:|:------------:|:----------:|
-| ResNet 101 | ResNet 18 |    59.3M    |    16.6    |   28.0%   |
-| ResNet 101 | MobileNetV2 |    59.3M    |     5.8M    |   9.8%   |
+Download the datasets and teacher models. Put the teacher model in ```pretrained/``` and set the path to the datasets in ```mypath.py```.
 
-
-### Teacher models
-Download following pre-trained teacher network and put it into ```./Segmentation/pretrained``` directory
-- [ResNet101-DeepLabV3+](https://drive.google.com/open?id=1Pz2OT5KoSNvU5rc3w5d2R8_0OBkKSkLR)
-
-We used pre-trained model in [pytorch-deeplab-xception](https://github.com/jfzhang95/pytorch-deeplab-xception) for teacher network.
 
 ### Training
-
-- First, move to segmentation folder : ```cd Segmentation```
-- Next, configure your dataset path on ```Segmentation/mypath.py```
-
 - Without distillation
-  - ResNet 18
-  ```shell script
-  CUDA_VISIBLE_DEVICES=0,1 python train.py --backbone resnet18 --gpu-ids 0,1 --dataset pascal --use-sbd --nesterov
+  ```shell
+  python train.py --backbone resnet18 --dataset pascal --nesterov --epochs 120 --batch-size 6
   ```
-  
-  - MobileNetV2
-  ```shell script
-  CUDA_VISIBLE_DEVICES=0,1 python train.py --backbone mobilenet --gpu-ids 0,1 --dataset pascal --use-sbd --nesterov
-  ````
 
 - Distillation
-  - ResNet 18
-  ```shell script
-  CUDA_VISIBLE_DEVICES=0,1 python train_with_distillation.py --backbone resnet18 --gpu-ids 0,1 --dataset pascal --use-sbd --nesterov
-  ```
-  
-  -MobileNetV2
-  ```shell script
-  CUDA_VISIBLE_DEVICES=0,1 python train_with_distillation.py --backbone mobilenet --gpu-ids 0,1 --dataset pascal --use-sbd --nesterov
+  ```shell
+  python train_kd.py --backbone resnet18 --dataset pascal --nesterov --epochs 120 --batch-size 6 --attn_lambda 2
   ```
 
-### Experimental results
 
-This numbers are based validation performance of our code.
-
-- ResNet 18
-
-|   Network  |  Method  | mIOU |
-|:----------:|:--------:|:----------:|
-| ResNet 101 |  Teacher |    77.89   |
-| ResNet 18 | Original |    72.07   |
-| ResNet 18 | Proposed |    __73.98__   |
-
-- MobileNetV2
-
-|  Network  |  Method  |  mIOU |
-|:---------:|:--------:|:-----:|
-| ResNet 101 |  Teacher | 77.89 |
-| MobileNetV2 | Original | 68.46 |
-| MobileNetV2 | Proposed | __71.19__ |
+### Experimental Results
 
 
-In the paper, we reported performance on the **test** set, but our code measures the performance on the **val** set.
-Therefore, the performance on code is not same as the paper.
-If you want accurate measure, please measure performance on **test** set with [Pascal VOC evaluation server](http://host.robots.ox.ac.uk/pascal/VOC/).
+Comparison of results on the PascalVOC dataset.
+
+| Method                               | mIoU(%)            | Params(M) |
+| ------------------------------------ | ------------------ | --------- |
+| Teacher: Deeplab-V3 + (ResNet-101)   | 77.85              | 59.3      |
+| Student: Deeplab-V3 + (ResNet-18)   | 67.50              | 16.6      |
+| Student + KD                        | 69.13 ± 0.11       | 16.6      |
+| Student + Overhaul                      | 70.67 ± 0.25       | 16.6      |
+| Student + DistKD                        | 69.84 ± 0.11     | 5.9       |
+| Student + CIRKD                        | 71.02 ± 0.11      | 5.9       |
+| Student + LAD                        | 71.42 ± 0.09      | 5.9       |
+| **Student + AttnFD (ours)**              | **73.09 ± 0.06**   | 5.9       |
+
+
+
+Comparison of results on the Cityscapes dataset.
+
+| Method            | mIoU(%)  | Accuracy(%) |
+| ----------------- | -------- | ----------- |
+| Teacher: ResNet101      | 77.66    | 84.05       |
+| Student: ResNet18      | 64.09    | 74.8        |
+| Student + KD           | 65.21 (+1.12) | 76.32 (+1.74) |
+| Student + Overhaul           | 70.31 (+6.22) | 80.10 (+5.3) |
+| Student + DistKD           | 71.81 (+7.72) | 80.73 (+5.93) |
+| Student + CIRKD         | 70.49 (+6.40) | 79.99 (+5.19) |
+| Student + LAD         | 71.37 (+7.28) | 80.93 (+6.13)   |
+| **Student + AttnFD (ours)** | **73.04 (+8.95)** | **83.01 (+8.21)** |
+
+ 
+ ## Citation
+If you use this repository for your research or wish to refer to our distillation method, please use the following BibTeX entry:
+```bibtex
+@article{mansourian2024attention,
+  title={Attention-guided Feature Distillation for Semantic Segmentation},
+  author={Mansourian, Amir M and Jalali, Arya and Ahmadi, Rozhan and Kasaei, Shohreh},
+  journal={arXiv preprint arXiv:2403.05451},
+  year={2024}
+}
+
+@article{mansourian2025aicsd,
+  title={AICSD: Adaptive inter-class similarity distillation for semantic segmentation},
+  author={Mansourian, Amir M and Ahamdi, Rozhan and Kasaei, Shohreh},
+  journal={Multimedia Tools and Applications},
+  pages={1--20},
+  year={2025},
+  publisher={Springer}
+}
+```
+
+### Acknowledgement
+This codebase is heavily borrowed from [A Comprehensive Overhaul of Feature Distillation ](https://github.com/clovaai/overhaul-distillation). Thanks for their excellent work.

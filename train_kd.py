@@ -2,6 +2,7 @@ import argparse
 import os
 import numpy as np
 from tqdm import tqdm
+import wandb
 
 from mypath import Path
 from dataloaders import make_data_loader
@@ -32,24 +33,18 @@ class Trainer(object):
                              backbone='resnet101',
                              output_stride=args.out_stride,
                              sync_bn=args.sync_bn,
-                             freeze_bn=args.freeze_bn,
-                             is_student = False,
-                             att_type=args.att_type)
-        checkpoint = torch.load('pretrained/deeplab-resnet.pth.tar')
+                             freeze_bn=args.freeze_bn)
+        checkpoint = torch.load(self.args.teacher_path)
         self.t_net.load_state_dict(checkpoint['state_dict'])
-
+        
         self.s_net = DeepLab(num_classes=self.nclass,
                              backbone=args.backbone,
                              output_stride=args.out_stride,
                              sync_bn=args.sync_bn,
-                             freeze_bn=args.freeze_bn,
-                             att_type=args.att_type)
+                             freeze_bn=args.freeze_bn)
+
         self.d_net = distiller.Distiller(self.t_net, self.s_net, self.args)
 
-        print('Teacher Net: ')
-        print(self.t_net)
-        print('Student Net: ')
-        print(self.s_net)
         print('the number of teacher model parameters: {}'.format(
             sum([p.data.nelement() for p in self.t_net.parameters()])))
         print('the number of student model parameters: {}'.format(
@@ -60,13 +55,13 @@ class Trainer(object):
 
         distill_params = [{'params': self.s_net.get_1x_lr_params(), 'lr': args.lr},
                           {'params': self.s_net.get_10x_lr_params(), 'lr': args.lr * 10},
-                          {'params': self.d_net.Connectors.parameters(), 'lr': args.lr * 10},
-                          {'params': self.d_net.attns.parameters(), 'lr': args.lr * 10}]
+                          {'params': self.d_net.atten_modules.parameters(), 'lr':args.lr * 10}
+                          ]
+                          #{'params': self.d_net.Connectors.parameters(), 'lr': args.lr * 10}]
 
-        init_params = [{'params': self.d_net.Connectors.parameters(), 'lr': args.lr * 10},
-                    {'params': self.d_net.attns.parameters(), 'lr': args.lr * 10}]
+        init_params = [{'params': self.d_net.Connectors.parameters(), 'lr': args.lr * 10}]
 
-        # Define Optimizer
+        # # Define Optimizer
         self.optimizer = torch.optim.SGD(distill_params, momentum=args.momentum,
                                          weight_decay=args.weight_decay, nesterov=args.nesterov)
         self.init_optimizer = torch.optim.SGD(init_params, momentum=args.momentum,
@@ -91,13 +86,13 @@ class Trainer(object):
         self.scheduler = LR_Scheduler(args.lr_scheduler, args.lr,
                                             args.epochs, len(self.train_loader))
 
-        # Enable multi-GPU usage if CUDA is available
+        # Using cuda
         if args.cuda:
             self.s_net = torch.nn.DataParallel(self.s_net).cuda()
             self.d_net = torch.nn.DataParallel(self.d_net).cuda()
 
         # Resuming checkpoint
-        self.best_pred = 0.0
+        self.best_pred = 0.0       
 
         # Clear start epoch if fine-tuning
         if args.ft:
@@ -123,13 +118,12 @@ class Trainer(object):
                 image, target = image.cuda(), target.cuda()
             self.scheduler(optimizer, i, epoch, self.best_pred)
             optimizer.zero_grad()
-
-            output, kd_loss, lad_loss, pad_loss, cad_loss, naive_loss, attn_loss = self.d_net(image, target)
-
+            
+            output, attnfd_loss = self.d_net(image)
             loss_seg = self.criterion(output, target)
-
-            loss = loss_seg + naive_loss + kd_loss + lad_loss + pad_loss + cad_loss + attn_loss
-
+            
+            loss = loss_seg + attnfd_loss
+            
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
@@ -138,8 +132,6 @@ class Trainer(object):
         print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
         print('Loss: %.3f' % train_loss)
 
-        print('Losses: seg: {}, kd: {}, lad: {}, pad: {}, cad: {}, naive: {}, attn: {}'
-              .format(loss_seg, kd_loss, lad_loss, pad_loss, cad_loss, naive_loss, attn_loss))
         if self.args.no_val:
             # save checkpoint every epoch
             is_best = False
@@ -182,9 +174,6 @@ class Trainer(object):
 
         new_pred = mIoU
         if new_pred > self.best_pred:
-
-            self.s_net.module.set_attn_modules(self.d_net.module.get_attn_modules())
-
             is_best = True
             self.best_pred = new_pred
             self.saver.save_checkpoint({
@@ -243,6 +232,7 @@ def main():
                         metavar='M', help='w-decay (default: 5e-4)')
     parser.add_argument('--nesterov', action='store_true', default=False,
                         help='whether use nesterov (default: False)')
+    
     # cuda, seed and logging
     parser.add_argument('--no-cuda', action='store_true', default=
                         False, help='disables CUDA training')
@@ -265,26 +255,16 @@ def main():
     parser.add_argument('--no-val', action='store_true', default=False,
                         help='skip validation during training')
     
-    # loss coefficients
-    parser.add_argument('--naive_lambda', type=float, default=None,
-                        help='coefficient for naive loss')
+    #loss options
+    parser.add_argument('--attn_lambda', type=float, default=2,
+                        help='coefficient of the distillation loss (default: 2)')
     
-    parser.add_argument('--kd_lambda', type = float, default = None,
-                        help = 'coefficient for kd loss')
+    parser.add_argument('--teacher_path', type=str, default='pretrained/teacher-pascal.pth.tar',
+                        help='path to the pretrained teache')
     
-    parser.add_argument('--lad_lambda', type = float, default = None,
-                        help = 'coefficient for lad loss')
-    
-    parser.add_argument('--pad_lambda', type = float, default = None,
-                        help = 'coefficient for pad loss')
-    
-    parser.add_argument('--att_type', type = str, default = 'cbam',
-                        help = 'type of attention module')
-    
-    parser.add_argument('--att_lambda', type = float, default = None,
-                        help = 'coefficient for attention loss')
-    
-
+    parser.add_argument('--attn_type', type=str, default='lsas',
+                        choices=['spectral', 'lsas', 'sfa'],
+                        help='attention type (default: lsas)')
 
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -293,6 +273,7 @@ def main():
             args.gpu_ids = [int(s) for s in args.gpu_ids.split(',')]
         except ValueError:
             raise ValueError('Argument --gpu_ids must be a comma-separated list of integers only')
+    
 
     # default settings for epochs, batch_size and lr
     if args.epochs is None:
@@ -320,7 +301,7 @@ def main():
 
     if args.checkname is None:
         args.checkname = 'deeplab-'+str(args.backbone)
-    # print(args)
+    print(args)
     torch.manual_seed(args.seed)
     trainer = Trainer(args)
     print('Starting Epoch:', trainer.args.start_epoch)
@@ -329,7 +310,7 @@ def main():
         trainer.training(epoch)
         if not trainer.args.no_val and epoch % args.eval_interval == (args.eval_interval - 1):
             trainer.validation(epoch)
-
+            
 
 if __name__ == "__main__":
    main()

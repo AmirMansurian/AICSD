@@ -4,7 +4,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from modeling.sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
 from cbam import *
-from spectral import *
 
 class Decoder(nn.Module):
     def __init__(self, num_classes, backbone, BatchNorm):
@@ -33,7 +32,6 @@ class Decoder(nn.Module):
                                        nn.Dropout(0.1),
                                        nn.Conv2d(256, num_classes, kernel_size=1, stride=1))
         self.cbam = CBAM(256)
-        # self.spectral = MultiSpectralAttentionLayer(256, 129, 129)
         self._init_weight()
         
         
@@ -66,7 +64,6 @@ class Decoder(nn.Module):
         x = self.last_conv[0:7](x)
         feat1 = x
         atten = self.cbam(x)
-        # atten = self.spectral(x)
         x = self.last_conv[7:](x)
 
         return [feat1], [atten], x
