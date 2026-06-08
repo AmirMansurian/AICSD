@@ -93,6 +93,14 @@ If you use this repository for your research or wish to refer to our distillatio
   year={2026}
 }
 
+@inproceedings{mansourian2026attention,
+  title={Attention as Geometric Transformation: Revisiting Feature Distillation for Semantic Segmentation},
+  author={Mansourian, Amirmohammad and Jalali, Arya and Ahmadi, Rozhan and Kasaei, Shohreh},
+  booktitle={Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision},
+  pages={1287--1297},
+  year={2026}
+}
+
 @article{mansourian2025a,
 title={A Comprehensive Survey on Knowledge Distillation},
 author={Amir M. Mansourian and Rozhan Ahmadi and Masoud Ghafouri and Amir Mohammad Babaei and Elaheh Badali Golezani and Zeynab yasamani ghamchi and Vida Ramezanian and Alireza Taherian and Kimia Dinashi and Amirali Miri and Shohreh Kasaei},
@@ -101,12 +109,6 @@ issn={2835-8856},
 year={2025}
 }
 
-@article{mansourian2024attention,
-  title={Attention-guided feature distillation for semantic segmentation},
-  author={Mansourian, Amir M and Jalali, Arya and Ahmadi, Rozhan and Kasaei, Shohreh},
-  journal={arXiv preprint arXiv:2403.05451},
-  year={2024}
-}
 ```
 
 ### Acknowledgement
